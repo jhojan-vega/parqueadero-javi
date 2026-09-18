@@ -1,0 +1,21 @@
+# Dependencias de Node.js
+node_modules/
+
+# Variables privadas y contraseñas
+.env
+.env.local
+.env.production
+
+# Archivos generados al compilar
+dist/
+build/
+
+# Registros temporales
+*.log
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# VS Code local
+.vscode/
