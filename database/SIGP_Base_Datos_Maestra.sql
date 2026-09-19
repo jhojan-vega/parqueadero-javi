@@ -103,7 +103,6 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION 'Tarifa % no encontrada',p_id_tarifa; END IF;
  mt:=FLOOR(EXTRACT(EPOCH FROM(p_salida-p_entrada))/60)::INTEGER;
  ini_noche:=DATE_TRUNC('day',p_entrada)+INTERVAL '21 hours';
- IF p_entrada::TIME<TIME '07:00:00' THEN ini_noche:=ini_noche-INTERVAL '1 day'; END IF;
  cierre:=DATE_TRUNC('day',ini_noche)+INTERVAL '22 hours';
  fin_noche:=ini_noche+INTERVAL '10 hours';
  IF p_salida<=cierre THEN RETURN calcular_tarifa_diurna(mt,p_id_tarifa); END IF;
