@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { autenticar, autorizarRoles, rolesAdministrativos, rolesOperativos } from '../auth/auth.middleware';
 import {
   abrirCaja,
   buscarCajaPorId,
@@ -18,17 +19,15 @@ const esIdValido = (valor: unknown): boolean =>
   (typeof valor === 'string' && /^\d+$/.test(valor)) ||
   (typeof valor === 'number' && Number.isSafeInteger(valor) && valor > 0);
 
-const validarAperturaCaja = (cuerpo: unknown): string | null => {
+const validarAperturaCaja = (cuerpo: unknown): boolean => {
   if (
     !esObjeto(cuerpo) ||
-    Object.keys(cuerpo).length !== 1 ||
-    !('id_colaborador' in cuerpo) ||
-    !esIdValido(cuerpo.id_colaborador)
+    Object.keys(cuerpo).length !== 0
   ) {
-    return null;
+    return false;
   }
 
-  return String(cuerpo.id_colaborador);
+  return true;
 };
 
 const validarEfectivoReal = (cuerpo: unknown): number | null => {
@@ -104,10 +103,17 @@ const validarNovedades = (cuerpo: unknown): string | null | undefined => {
 };
 
 export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
-  app.get('/cajas/abiertas', async () => listarCajasAbiertas());
+  app.get('/cajas/abiertas', { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] }, async (solicitud) =>
+    listarCajasAbiertas(
+      solicitud.user.rol === 'Vigilante'
+        ? solicitud.user.id_colaborador
+        : undefined,
+    ),
+  );
 
   app.get<{ Querystring: Record<string, unknown> }>(
     '/cajas/historial',
+    { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] },
     async (solicitud, respuesta) => {
       const filtros = validarFiltrosHistorial(solicitud.query);
 
@@ -115,12 +121,18 @@ export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
         return respuesta.status(400).send({ mensaje: 'Filtros de historial inválidos' });
       }
 
-      return listarHistorialCajas(filtros);
+      return listarHistorialCajas({
+        ...filtros,
+        ...(solicitud.user.rol === 'Vigilante'
+          ? { id_colaborador: solicitud.user.id_colaborador }
+          : {}),
+      });
     },
   );
 
   app.get<{ Querystring: Record<string, unknown> }>(
     '/cajas/resumen-faltantes',
+    { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] },
     async (solicitud, respuesta) => {
       const filtros = validarFiltrosHistorial(solicitud.query);
 
@@ -128,12 +140,18 @@ export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
         return respuesta.status(400).send({ mensaje: 'Filtros de faltantes inválidos' });
       }
 
-      return obtenerResumenFaltantes(filtros);
+      return obtenerResumenFaltantes({
+        ...filtros,
+        ...(solicitud.user.rol === 'Vigilante'
+          ? { id_colaborador: solicitud.user.id_colaborador }
+          : {}),
+      });
     },
   );
 
   app.get<{ Params: { id: string } }>(
     '/cajas/:id',
+    { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] },
     async (solicitud, respuesta) => {
       if (!/^\d+$/.test(solicitud.params.id)) {
         return respuesta.status(400).send({ mensaje: 'Id de caja inválido' });
@@ -145,19 +163,26 @@ export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
         return respuesta.status(404).send({ mensaje: 'Caja no encontrada' });
       }
 
+      if (
+        solicitud.user.rol === 'Vigilante' &&
+        caja.id_colaborador !== solicitud.user.id_colaborador
+      ) {
+        return respuesta.status(403).send({ mensaje: 'No tiene permiso para consultar esta caja' });
+      }
+
       return caja;
     },
   );
 
-  app.post('/cajas/apertura', async (solicitud, respuesta) => {
-    const id_colaborador = validarAperturaCaja(solicitud.body);
+  app.post('/cajas/apertura', { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] }, async (solicitud, respuesta) => {
+    const aperturaValida = validarAperturaCaja(solicitud.body);
 
-    if (!id_colaborador) {
+    if (!aperturaValida) {
       return respuesta.status(400).send({ mensaje: 'Datos de apertura inválidos' });
     }
 
     try {
-      const resultado = await abrirCaja(id_colaborador);
+      const resultado = await abrirCaja(solicitud.user.id_colaborador);
 
       if (resultado.resultado === 'colaborador_no_encontrado') {
         return respuesta.status(404).send({ mensaje: 'Colaborador no encontrado' });
@@ -200,6 +225,7 @@ export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
 
   app.post<{ Params: { id: string } }>(
     '/cajas/:id/verificar',
+    { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] },
     async (solicitud, respuesta) => {
       if (!/^\d+$/.test(solicitud.params.id)) {
         return respuesta.status(400).send({ mensaje: 'Id de caja inválido' });
@@ -209,6 +235,16 @@ export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
 
       if (efectivo_real === null) {
         return respuesta.status(400).send({ mensaje: 'Efectivo real inválido' });
+      }
+
+      const caja = await buscarCajaPorId(solicitud.params.id);
+
+      if (
+        caja &&
+        solicitud.user.rol === 'Vigilante' &&
+        caja.id_colaborador !== solicitud.user.id_colaborador
+      ) {
+        return respuesta.status(403).send({ mensaje: 'No tiene permiso para verificar esta caja' });
       }
 
       const resultado = await verificarCaja(
@@ -230,6 +266,7 @@ export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
 
   app.post<{ Params: { id: string } }>(
     '/cajas/:id/cierre',
+    { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] },
     async (solicitud, respuesta) => {
       if (!/^\d+$/.test(solicitud.params.id)) {
         return respuesta.status(400).send({ mensaje: 'Id de caja inválido' });
@@ -239,6 +276,16 @@ export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
 
       if (efectivo_real === null) {
         return respuesta.status(400).send({ mensaje: 'Efectivo real inválido' });
+      }
+
+      const caja = await buscarCajaPorId(solicitud.params.id);
+
+      if (
+        caja &&
+        solicitud.user.rol === 'Vigilante' &&
+        caja.id_colaborador !== solicitud.user.id_colaborador
+      ) {
+        return respuesta.status(403).send({ mensaje: 'No tiene permiso para cerrar esta caja' });
       }
 
       const resultado = await cerrarCaja(
@@ -260,6 +307,7 @@ export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
 
   app.patch<{ Params: { id: string } }>(
     '/cajas/:id/novedades',
+    { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] },
     async (solicitud, respuesta) => {
       if (!/^\d+$/.test(solicitud.params.id)) {
         return respuesta.status(400).send({ mensaje: 'Id de caja inválido' });

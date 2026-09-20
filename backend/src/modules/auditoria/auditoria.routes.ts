@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { autenticar, autorizarRoles, rolesAdministrativos } from '../auth/auth.middleware';
 import { crearAuditoria, listarHistorialAuditorias } from './auditoria.service';
 import type {
   CrearAuditoria,
@@ -25,11 +26,13 @@ const tieneSoloCampos = (
   camposPermitidos: string[],
 ): boolean => Object.keys(datos).every((campo) => camposPermitidos.includes(campo));
 
-const validarCrearAuditoria = (cuerpo: unknown): CrearAuditoria | null => {
+const validarCrearAuditoria = (
+  cuerpo: unknown,
+  id_administrador_auditor: string,
+): CrearAuditoria | null => {
   if (
     !esObjeto(cuerpo) ||
     !tieneSoloCampos(cuerpo, [
-      'id_administrador_auditor',
       'id_operador_auditado',
       'id_caja',
       'carros_fisico',
@@ -37,7 +40,6 @@ const validarCrearAuditoria = (cuerpo: unknown): CrearAuditoria | null => {
       'bicicletas_fisico',
       'observaciones',
     ]) ||
-    !esIdValido(cuerpo.id_administrador_auditor) ||
     !esIdValido(cuerpo.id_operador_auditado) ||
     !esIdValido(cuerpo.id_caja) ||
     !esConteoFisicoValido(cuerpo.carros_fisico) ||
@@ -51,7 +53,7 @@ const validarCrearAuditoria = (cuerpo: unknown): CrearAuditoria | null => {
   }
 
   return {
-    id_administrador_auditor: String(cuerpo.id_administrador_auditor),
+    id_administrador_auditor,
     id_operador_auditado: String(cuerpo.id_operador_auditado),
     id_caja: String(cuerpo.id_caja),
     carros_fisico: cuerpo.carros_fisico,
@@ -115,8 +117,11 @@ const validarFiltrosHistorial = (
 };
 
 export const rutasAuditoria = async (app: FastifyInstance): Promise<void> => {
-  app.post('/auditorias', async (solicitud, respuesta) => {
-    const datos = validarCrearAuditoria(solicitud.body);
+  app.post('/auditorias', { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] }, async (solicitud, respuesta) => {
+    const datos = validarCrearAuditoria(
+      solicitud.body,
+      solicitud.user.id_colaborador,
+    );
 
     if (!datos) {
       return respuesta.status(400).send({ mensaje: 'Datos de auditoría inválidos' });
@@ -155,6 +160,7 @@ export const rutasAuditoria = async (app: FastifyInstance): Promise<void> => {
 
   app.get<{ Querystring: Record<string, unknown> }>(
     '/auditorias',
+    { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] },
     async (solicitud, respuesta) => {
       const filtros = validarFiltrosHistorial(solicitud.query);
 

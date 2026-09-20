@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { autenticar, autorizarRoles, rolesOperativos } from '../auth/auth.middleware';
 import {
   calcularSalidaServicio,
   obtenerDisponibilidadServicios,
@@ -48,6 +49,7 @@ const normalizarPlaca = (placa: string): string =>
 
 const validarEntradaServicio = (
   cuerpo: unknown,
+  id_colaborador_entrada: string,
 ): CrearEntradaServicio | null => {
   if (!esObjeto(cuerpo) || !esTipoVehiculoServicio(cuerpo.tipo_vehiculo)) {
     return null;
@@ -58,10 +60,8 @@ const validarEntradaServicio = (
       !tieneSoloCampos(cuerpo, [
         'tipo_vehiculo',
         'identificacion_usuario',
-        'id_colaborador_entrada',
       ]) ||
-      !esTextoObligatorio(cuerpo.identificacion_usuario) ||
-      !esIdColaboradorValido(cuerpo.id_colaborador_entrada)
+      !esTextoObligatorio(cuerpo.identificacion_usuario)
     ) {
       return null;
     }
@@ -69,7 +69,7 @@ const validarEntradaServicio = (
     return {
       tipo_vehiculo: 'Bicicleta',
       identificacion_usuario: cuerpo.identificacion_usuario.trim(),
-      id_colaborador_entrada: String(cuerpo.id_colaborador_entrada),
+      id_colaborador_entrada,
     };
   }
 
@@ -78,10 +78,8 @@ const validarEntradaServicio = (
       'tipo_vehiculo',
       'placa',
       'vehiculo_especial',
-      'id_colaborador_entrada',
     ]) ||
     !esTextoObligatorio(cuerpo.placa) ||
-    !esIdColaboradorValido(cuerpo.id_colaborador_entrada) ||
     (cuerpo.vehiculo_especial !== undefined &&
       typeof cuerpo.vehiculo_especial !== 'boolean')
   ) {
@@ -104,12 +102,13 @@ const validarEntradaServicio = (
     tipo_vehiculo: cuerpo.tipo_vehiculo,
     placa,
     vehiculo_especial: vehiculoEspecial,
-    id_colaborador_entrada: String(cuerpo.id_colaborador_entrada),
+    id_colaborador_entrada,
   };
 };
 
 const validarSalidaConPago = (
   cuerpo: unknown,
+  id_colaborador: string,
 ): RegistrarSalidaServicio | null => {
   if (!esObjeto(cuerpo) || !esMedioPago(cuerpo.medio_pago)) {
     return null;
@@ -117,13 +116,12 @@ const validarSalidaConPago = (
 
   const camposPermitidos =
     cuerpo.medio_pago === 'Efectivo'
-      ? ['id_caja', 'id_colaborador', 'medio_pago']
-      : ['id_caja', 'id_colaborador', 'medio_pago', 'referencia_nequi'];
+      ? ['id_caja', 'medio_pago']
+      : ['id_caja', 'medio_pago', 'referencia_nequi'];
 
   if (
     !tieneSoloCampos(cuerpo, camposPermitidos) ||
-    !esIdColaboradorValido(cuerpo.id_caja) ||
-    !esIdColaboradorValido(cuerpo.id_colaborador)
+    !esIdColaboradorValido(cuerpo.id_caja)
   ) {
     return null;
   }
@@ -140,7 +138,7 @@ const validarSalidaConPago = (
 
   return {
     id_caja: String(cuerpo.id_caja),
-    id_colaborador: String(cuerpo.id_colaborador),
+    id_colaborador,
     medio_pago: cuerpo.medio_pago,
     ...(cuerpo.medio_pago === 'Nequi'
       ? {
@@ -169,14 +167,15 @@ const esErrorHorarioEntrada = (error: unknown): boolean =>
   error.message.includes('Entrada no permitida');
 
 export const rutasServicio = async (app: FastifyInstance): Promise<void> => {
-  app.get('/servicios/activos', async () => listarServiciosActivos());
+  app.get('/servicios/activos', { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] }, async () => listarServiciosActivos());
 
-  app.get('/servicios/disponibilidad', async () =>
+  app.get('/servicios/disponibilidad', { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] }, async () =>
     obtenerDisponibilidadServicios(),
   );
 
   app.get<{ Params: { id: string } }>(
     '/servicios/:id/salida-calculo',
+    { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] },
     async (solicitud, respuesta) => {
       if (!/^\d+$/.test(solicitud.params.id)) {
         return respuesta.status(400).send({ mensaje: 'Id de servicio inválido' });
@@ -196,8 +195,11 @@ export const rutasServicio = async (app: FastifyInstance): Promise<void> => {
     },
   );
 
-  app.post('/servicios/entrada', async (solicitud, respuesta) => {
-    const datos = validarEntradaServicio(solicitud.body);
+  app.post('/servicios/entrada', { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] }, async (solicitud, respuesta) => {
+    const datos = validarEntradaServicio(
+      solicitud.body,
+      solicitud.user.id_colaborador,
+    );
 
     if (!datos) {
       return respuesta.status(400).send({ mensaje: 'Datos de entrada inválidos' });
@@ -238,12 +240,16 @@ export const rutasServicio = async (app: FastifyInstance): Promise<void> => {
 
   app.post<{ Params: { id: string } }>(
     '/servicios/:id/salida',
+    { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] },
     async (solicitud, respuesta) => {
       if (!/^\d+$/.test(solicitud.params.id)) {
         return respuesta.status(400).send({ mensaje: 'Id de servicio inválido' });
       }
 
-      const datos = validarSalidaConPago(solicitud.body);
+      const datos = validarSalidaConPago(
+        solicitud.body,
+        solicitud.user.id_colaborador,
+      );
 
       if (!datos) {
         return respuesta.status(400).send({ mensaje: 'Datos de pago inválidos' });

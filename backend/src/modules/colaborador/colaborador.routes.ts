@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { autenticar, autorizarRoles, rolesAdministrativos } from '../auth/auth.middleware';
 import {
   buscarColaboradorPorId,
   cambiarEstadoColaborador,
@@ -149,7 +150,7 @@ const esConflictoUnico = (error: unknown): boolean =>
 export const rutasColaborador = async (
   app: FastifyInstance,
 ): Promise<void> => {
-  app.get('/colaboradores', async () => {
+  app.get('/colaboradores', { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] }, async () => {
     const colaboradores = await listarColaboradores();
 
     return colaboradores;
@@ -157,6 +158,7 @@ export const rutasColaborador = async (
 
   app.get<{ Params: { id: string } }>(
     '/colaboradores/:id',
+    { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] },
     async (solicitud, respuesta) => {
       const colaborador = await buscarColaboradorPorId(
         solicitud.params.id,
@@ -172,7 +174,7 @@ export const rutasColaborador = async (
     },
   );
 
-  app.post('/colaboradores', async (solicitud, respuesta) => {
+  app.post('/colaboradores', { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] }, async (solicitud, respuesta) => {
     const datos = validarCrearColaborador(solicitud.body);
 
     if (!datos) {
@@ -195,6 +197,7 @@ export const rutasColaborador = async (
 
   app.put<{ Params: { id: string } }>(
     '/colaboradores/:id',
+    { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] },
     async (solicitud, respuesta) => {
       if (!esIdValido(solicitud.params.id)) {
         return respuesta.status(400).send({ mensaje: 'Id de colaborador inválido' });
@@ -230,6 +233,7 @@ export const rutasColaborador = async (
 
   app.patch<{ Params: { id: string } }>(
     '/colaboradores/:id/estado',
+    { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] },
     async (solicitud, respuesta) => {
       if (!esIdValido(solicitud.params.id)) {
         return respuesta.status(400).send({ mensaje: 'Id de colaborador inválido' });

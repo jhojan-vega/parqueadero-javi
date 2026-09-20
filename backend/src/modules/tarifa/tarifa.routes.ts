@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { autenticar, autorizarRoles, rolesAdministrativos } from '../auth/auth.middleware';
 import {
   buscarTarifaPorId,
   crearTarifa,
@@ -100,12 +101,13 @@ const validarCrearTarifa = (cuerpo: unknown): CrearTarifa | null => {
 };
 
 export const rutasTarifa = async (app: FastifyInstance): Promise<void> => {
-  app.get('/tarifas', async () => listarTarifas());
+  app.get('/tarifas', { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] }, async () => listarTarifas());
 
-  app.get('/tarifas/vigentes', async () => listarTarifasVigentes());
+  app.get('/tarifas/vigentes', { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] }, async () => listarTarifasVigentes());
 
   app.get<{ Params: { id: string } }>(
     '/tarifas/:id',
+    { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] },
     async (solicitud, respuesta) => {
       if (!esIdValido(solicitud.params.id)) {
         return respuesta.status(400).send({ mensaje: 'Id de tarifa inválido' });
@@ -121,7 +123,7 @@ export const rutasTarifa = async (app: FastifyInstance): Promise<void> => {
     },
   );
 
-  app.post('/tarifas', async (solicitud, respuesta) => {
+  app.post('/tarifas', { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] }, async (solicitud, respuesta) => {
     const datos = validarCrearTarifa(solicitud.body);
 
     if (!datos) {

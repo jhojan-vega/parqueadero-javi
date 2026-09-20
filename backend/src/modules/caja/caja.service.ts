@@ -31,13 +31,19 @@ const columnasCaja = `
   fecha_hora_regularizacion
 `;
 
-export const listarCajasAbiertas = async (): Promise<Caja[]> => {
-  const resultado = await pool.query<Caja>(`
-    SELECT ${columnasCaja}
-    FROM caja
-    WHERE estado = 'abierta'
-    ORDER BY fecha_hora_apertura ASC, id_caja ASC;
-  `);
+export const listarCajasAbiertas = async (
+  id_colaborador?: string,
+): Promise<Caja[]> => {
+  const resultado = await pool.query<Caja>(
+    `
+      SELECT ${columnasCaja}
+      FROM caja
+      WHERE estado = 'abierta'
+        ${id_colaborador ? 'AND id_colaborador = $1' : ''}
+      ORDER BY fecha_hora_apertura ASC, id_caja ASC;
+    `,
+    id_colaborador ? [id_colaborador] : [],
+  );
 
   return resultado.rows;
 };

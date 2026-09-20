@@ -14,6 +14,11 @@ export interface ColaboradorAutenticado {
   estado: EstadoColaborador;
 }
 
+export interface TokenAutenticacion {
+  id_colaborador: string;
+  rol: RolColaborador;
+}
+
 export type ResultadoLogin =
   | {
       resultado: 'autenticado';

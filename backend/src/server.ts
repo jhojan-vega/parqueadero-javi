@@ -1,10 +1,19 @@
 import Fastify from 'fastify';
+import fastifyJwt from '@fastify/jwt';
 import { probarConexion } from './config/database';
 import { registrarRutas } from './routes';
+
+const jwtSecret = process.env.JWT_SECRET;
+
+if (!jwtSecret) {
+  throw new Error('JWT_SECRET debe estar definida en las variables de entorno');
+}
 
 const app = Fastify({
   logger: true,
 });
+
+app.register(fastifyJwt, { secret: jwtSecret });
 
 app.get('/', async () => {
   return {

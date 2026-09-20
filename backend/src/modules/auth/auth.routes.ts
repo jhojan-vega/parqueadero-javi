@@ -51,6 +51,11 @@ export const rutasAuth = async (app: FastifyInstance): Promise<void> => {
       });
     }
 
-    return resultado.colaborador;
+    const token = await respuesta.jwtSign({
+      id_colaborador: resultado.colaborador.id_colaborador,
+      rol: resultado.colaborador.rol,
+    });
+
+    return { token, colaborador: resultado.colaborador };
   });
 };
