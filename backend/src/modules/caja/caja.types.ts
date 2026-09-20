@@ -44,3 +44,38 @@ export type ResultadoCierreCaja =
   | { resultado: 'cerrada'; caja: Caja }
   | { resultado: 'no_encontrada' }
   | { resultado: 'no_abierta' };
+
+export interface FiltrosHistorialCajas {
+  id_colaborador?: string;
+  fecha_desde?: string;
+  fecha_hasta?: string;
+}
+
+export interface CajaHistorial {
+  id_caja: string;
+  turno: TurnoCaja;
+  fecha_hora_apertura: Date;
+  fecha_hora_cierre: Date | null;
+  id_colaborador: string;
+  nombre_colaborador: string;
+  recaudo_total: number;
+  total_efectivo: number;
+  total_nequi: number;
+  efectivo_real: number | null;
+  faltante_caja: number;
+  sobrante_caja: number;
+  estado: EstadoCaja;
+  novedades: string | null;
+}
+
+export interface ResumenFaltantesColaborador {
+  id_colaborador: string;
+  nombre: string;
+  cantidad_cajas_con_faltante: number;
+  total_faltantes: number;
+}
+
+export type ResultadoActualizarNovedadesCaja =
+  | { resultado: 'actualizada'; caja: Caja }
+  | { resultado: 'no_encontrada' }
+  | { resultado: 'no_cerrada' };

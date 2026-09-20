@@ -4,8 +4,12 @@ import {
   buscarCajaPorId,
   cerrarCaja,
   listarCajasAbiertas,
+  listarHistorialCajas,
+  obtenerResumenFaltantes,
+  actualizarNovedadesCaja,
   verificarCaja,
 } from './caja.service';
+import type { FiltrosHistorialCajas } from './caja.types';
 
 const esObjeto = (valor: unknown): valor is Record<string, unknown> =>
   typeof valor === 'object' && valor !== null && !Array.isArray(valor);
@@ -42,8 +46,91 @@ const validarEfectivoReal = (cuerpo: unknown): number | null => {
   return cuerpo.efectivo_real;
 };
 
+const esFechaValida = (valor: unknown): valor is string =>
+  typeof valor === 'string' &&
+  valor.trim().length > 0 &&
+  !Number.isNaN(Date.parse(valor));
+
+const validarFiltrosHistorial = (
+  consulta: Record<string, unknown>,
+): FiltrosHistorialCajas | null => {
+  const camposPermitidos = ['id_colaborador', 'fecha_desde', 'fecha_hasta'];
+
+  if (Object.keys(consulta).some((campo) => !camposPermitidos.includes(campo))) {
+    return null;
+  }
+
+  if (
+    (consulta.id_colaborador !== undefined && !esIdValido(consulta.id_colaborador)) ||
+    (consulta.fecha_desde !== undefined && !esFechaValida(consulta.fecha_desde)) ||
+    (consulta.fecha_hasta !== undefined && !esFechaValida(consulta.fecha_hasta))
+  ) {
+    return null;
+  }
+
+  const fecha_desde =
+    typeof consulta.fecha_desde === 'string' ? consulta.fecha_desde.trim() : undefined;
+  const fecha_hasta =
+    typeof consulta.fecha_hasta === 'string' ? consulta.fecha_hasta.trim() : undefined;
+
+  if (
+    fecha_desde &&
+    fecha_hasta &&
+    new Date(fecha_desde).getTime() > new Date(fecha_hasta).getTime()
+  ) {
+    return null;
+  }
+
+  return {
+    ...(consulta.id_colaborador !== undefined
+      ? { id_colaborador: String(consulta.id_colaborador) }
+      : {}),
+    ...(fecha_desde ? { fecha_desde } : {}),
+    ...(fecha_hasta ? { fecha_hasta } : {}),
+  };
+};
+
+const validarNovedades = (cuerpo: unknown): string | null | undefined => {
+  if (
+    !esObjeto(cuerpo) ||
+    Object.keys(cuerpo).length !== 1 ||
+    !('novedades' in cuerpo) ||
+    (cuerpo.novedades !== null && typeof cuerpo.novedades !== 'string')
+  ) {
+    return undefined;
+  }
+
+  return cuerpo.novedades;
+};
+
 export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
   app.get('/cajas/abiertas', async () => listarCajasAbiertas());
+
+  app.get<{ Querystring: Record<string, unknown> }>(
+    '/cajas/historial',
+    async (solicitud, respuesta) => {
+      const filtros = validarFiltrosHistorial(solicitud.query);
+
+      if (!filtros) {
+        return respuesta.status(400).send({ mensaje: 'Filtros de historial inválidos' });
+      }
+
+      return listarHistorialCajas(filtros);
+    },
+  );
+
+  app.get<{ Querystring: Record<string, unknown> }>(
+    '/cajas/resumen-faltantes',
+    async (solicitud, respuesta) => {
+      const filtros = validarFiltrosHistorial(solicitud.query);
+
+      if (!filtros) {
+        return respuesta.status(400).send({ mensaje: 'Filtros de faltantes inválidos' });
+      }
+
+      return obtenerResumenFaltantes(filtros);
+    },
+  );
 
   app.get<{ Params: { id: string } }>(
     '/cajas/:id',
@@ -165,6 +252,38 @@ export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
 
       if (resultado.resultado === 'no_abierta') {
         return respuesta.status(409).send({ mensaje: 'La caja no está abierta' });
+      }
+
+      return resultado.caja;
+    },
+  );
+
+  app.patch<{ Params: { id: string } }>(
+    '/cajas/:id/novedades',
+    async (solicitud, respuesta) => {
+      if (!/^\d+$/.test(solicitud.params.id)) {
+        return respuesta.status(400).send({ mensaje: 'Id de caja inválido' });
+      }
+
+      const novedades = validarNovedades(solicitud.body);
+
+      if (novedades === undefined) {
+        return respuesta.status(400).send({ mensaje: 'Novedades inválidas' });
+      }
+
+      const resultado = await actualizarNovedadesCaja(
+        solicitud.params.id,
+        novedades,
+      );
+
+      if (resultado.resultado === 'no_encontrada') {
+        return respuesta.status(404).send({ mensaje: 'Caja no encontrada' });
+      }
+
+      if (resultado.resultado === 'no_cerrada') {
+        return respuesta.status(409).send({
+          mensaje: 'Solo se pueden actualizar novedades de una caja cerrada',
+        });
       }
 
       return resultado.caja;

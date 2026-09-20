@@ -3,9 +3,13 @@ import { pool } from '../../config/database';
 import { buscarColaboradorPorId } from '../colaborador/colaborador.service';
 import type {
   Caja,
+  CajaHistorial,
+  FiltrosHistorialCajas,
   ResultadoAperturaCaja,
+  ResultadoActualizarNovedadesCaja,
   ResultadoCierreCaja,
   ResultadoVerificacionCaja,
+  ResumenFaltantesColaborador,
   VerificacionCaja,
 } from './caja.types';
 
@@ -183,4 +187,124 @@ export const cerrarCaja = async (
   } finally {
     cliente.release();
   }
+};
+
+export const listarHistorialCajas = async (
+  filtros: FiltrosHistorialCajas,
+): Promise<CajaHistorial[]> => {
+  const condiciones: string[] = [];
+  const valores: string[] = [];
+
+  if (filtros.id_colaborador) {
+    valores.push(filtros.id_colaborador);
+    condiciones.push(`caja.id_colaborador = $${valores.length}`);
+  }
+
+  if (filtros.fecha_desde) {
+    valores.push(filtros.fecha_desde);
+    condiciones.push(`caja.fecha_hora_apertura >= $${valores.length}::TIMESTAMP`);
+  }
+
+  if (filtros.fecha_hasta) {
+    valores.push(filtros.fecha_hasta);
+    condiciones.push(`caja.fecha_hora_apertura <= $${valores.length}::TIMESTAMP`);
+  }
+
+  const where = condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
+  const resultado = await pool.query<CajaHistorial>(
+    `
+      SELECT
+        caja.id_caja,
+        caja.turno,
+        caja.fecha_hora_apertura,
+        caja.fecha_hora_cierre,
+        caja.id_colaborador,
+        colaborador.nombre AS nombre_colaborador,
+        caja.recaudo_total,
+        caja.total_efectivo,
+        caja.total_nequi,
+        caja.efectivo_real,
+        caja.faltante_caja,
+        caja.sobrante_caja,
+        caja.estado,
+        caja.novedades
+      FROM caja
+      INNER JOIN colaborador ON colaborador.id_colaborador = caja.id_colaborador
+      ${where}
+      ORDER BY caja.fecha_hora_apertura DESC, caja.id_caja DESC;
+    `,
+    valores,
+  );
+
+  return resultado.rows;
+};
+
+export const obtenerResumenFaltantes = async (
+  filtros: FiltrosHistorialCajas,
+): Promise<ResumenFaltantesColaborador[]> => {
+  const condiciones = ["caja.estado = 'cerrada'", 'caja.faltante_caja > 0'];
+  const valores: string[] = [];
+
+  if (filtros.id_colaborador) {
+    valores.push(filtros.id_colaborador);
+    condiciones.push(`caja.id_colaborador = $${valores.length}`);
+  }
+
+  if (filtros.fecha_desde) {
+    valores.push(filtros.fecha_desde);
+    condiciones.push(`caja.fecha_hora_cierre >= $${valores.length}::TIMESTAMP`);
+  }
+
+  if (filtros.fecha_hasta) {
+    valores.push(filtros.fecha_hasta);
+    condiciones.push(`caja.fecha_hora_cierre <= $${valores.length}::TIMESTAMP`);
+  }
+
+  const resultado = await pool.query<ResumenFaltantesColaborador>(
+    `
+      SELECT
+        caja.id_colaborador,
+        colaborador.nombre,
+        COUNT(*)::INTEGER AS cantidad_cajas_con_faltante,
+        SUM(caja.faltante_caja)::INTEGER AS total_faltantes
+      FROM caja
+      INNER JOIN colaborador ON colaborador.id_colaborador = caja.id_colaborador
+      WHERE ${condiciones.join(' AND ')}
+      GROUP BY caja.id_colaborador, colaborador.nombre
+      ORDER BY total_faltantes DESC, colaborador.nombre ASC;
+    `,
+    valores,
+  );
+
+  return resultado.rows;
+};
+
+export const actualizarNovedadesCaja = async (
+  id_caja: string,
+  novedades: string | null,
+): Promise<ResultadoActualizarNovedadesCaja> => {
+  const actualizacion = await pool.query<Caja>(
+    `
+      UPDATE caja
+      SET novedades = $1
+      WHERE id_caja = $2 AND estado = 'cerrada'
+      RETURNING ${columnasCaja};
+    `,
+    [novedades, id_caja],
+  );
+
+  if (actualizacion.rows[0]) {
+    return { resultado: 'actualizada', caja: actualizacion.rows[0] };
+  }
+
+  const caja = await pool.query<{ estado: 'abierta' | 'cerrada' | 'pendiente' }>(
+    'SELECT estado FROM caja WHERE id_caja = $1;',
+    [id_caja],
+  );
+
+  if (!caja.rows[0]) {
+    return { resultado: 'no_encontrada' };
+  }
+
+  return { resultado: 'no_cerrada' };
 };
