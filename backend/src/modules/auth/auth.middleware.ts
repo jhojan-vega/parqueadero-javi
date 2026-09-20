@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { RolColaborador } from '../colaborador/colaborador.types';
-import { buscarColaboradorPorId } from '../colaborador/colaborador.service';
+import { obtenerEstadoSeguridad } from './auth.service';
 import type { TokenAutenticacion } from './auth.types';
 
 declare module '@fastify/jwt' {
@@ -21,9 +21,7 @@ export const autenticar = async (
     return;
   }
 
-  const colaborador = await buscarColaboradorPorId(
-    solicitud.user.id_colaborador,
-  );
+  const colaborador = await obtenerEstadoSeguridad(solicitud.user.id_colaborador);
 
   if (!colaborador || colaborador.estado !== 'activo') {
     await respuesta.status(401).send({ mensaje: 'Usuario no autorizado' });
@@ -32,6 +30,11 @@ export const autenticar = async (
 
 export const autorizarRoles = (...rolesPermitidos: RolColaborador[]) =>
   async (solicitud: FastifyRequest, respuesta: FastifyReply): Promise<void> => {
+    const colaborador = await obtenerEstadoSeguridad(solicitud.user.id_colaborador);
+    if (!colaborador || colaborador.estado !== 'activo' || colaborador.requiere_cambio_contrasena) {
+      await respuesta.status(403).send({ mensaje: 'Debe cambiar su contraseña antes de continuar' });
+      return;
+    }
     if (!rolesPermitidos.includes(solicitud.user.rol)) {
       await respuesta.status(403).send({ mensaje: 'No tiene permiso para esta operación' });
     }

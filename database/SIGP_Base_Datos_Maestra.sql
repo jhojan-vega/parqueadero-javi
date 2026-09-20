@@ -12,9 +12,22 @@ CREATE TABLE colaborador (
  usuario VARCHAR(80) NOT NULL UNIQUE,
  correo VARCHAR(150),
  password_hash VARCHAR(255) NOT NULL,
+ requiere_cambio_contrasena BOOLEAN NOT NULL DEFAULT FALSE,
  rol VARCHAR(20) NOT NULL CHECK (rol IN ('Vigilante','Administrador','Ingeniero')),
  estado VARCHAR(20) NOT NULL DEFAULT 'activo' CHECK (estado IN ('activo','inactivo'))
 );
+
+CREATE TABLE recuperacion_contrasena (
+ id_recuperacion BIGSERIAL PRIMARY KEY,
+ id_colaborador BIGINT NOT NULL REFERENCES colaborador(id_colaborador),
+ codigo_hash VARCHAR(64) NOT NULL,
+ fecha_hora_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ fecha_hora_expiracion TIMESTAMP NOT NULL,
+ intentos INTEGER NOT NULL DEFAULT 0 CHECK (intentos >= 0 AND intentos <= 3),
+ utilizado BOOLEAN NOT NULL DEFAULT FALSE,
+ invalidado BOOLEAN NOT NULL DEFAULT FALSE
+);
+CREATE INDEX idx_recuperacion_contrasena_colaborador ON recuperacion_contrasena(id_colaborador, fecha_hora_creacion DESC);
 
 CREATE TABLE tarifa (
  id_tarifa BIGSERIAL PRIMARY KEY,

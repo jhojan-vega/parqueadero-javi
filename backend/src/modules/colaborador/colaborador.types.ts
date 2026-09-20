@@ -12,6 +12,7 @@ export interface Colaborador {
   usuario: string;
   correo: string | null;
   password_hash: string;
+  requiere_cambio_contrasena: boolean;
   rol: RolColaborador;
   estado: EstadoColaborador;
 }

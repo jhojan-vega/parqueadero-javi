@@ -7,7 +7,10 @@ import type {
   EstadoColaborador,
 } from './colaborador.types';
 
-type ColaboradorConsulta = Omit<Colaborador, 'password_hash'>;
+type ColaboradorConsulta = Omit<
+  Colaborador,
+  'password_hash' | 'requiere_cambio_contrasena'
+>;
 
 export const listarColaboradores = async (): Promise<ColaboradorConsulta[]> => {
   const resultado = await pool.query<ColaboradorConsulta>(`
