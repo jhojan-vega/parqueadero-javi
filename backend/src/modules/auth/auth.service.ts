@@ -80,13 +80,74 @@ export const cambiarContrasena = async (id: string, actual: string, nueva: strin
   return true;
 };
 
-export const solicitarRecuperacion = async (correo: string): Promise<{ codigo?: string; disponible: boolean }> => {
-  const r = await pool.query<{ id_colaborador: string }>("SELECT id_colaborador FROM colaborador WHERE correo = $1 AND estado = 'activo' AND rol IN ('Administrador','Ingeniero')", [correo]);
-  if (!r.rows[0]) return { disponible: false };
-  const codigo = String(randomInt(100000, 1000000));
-  await pool.query('UPDATE recuperacion_contrasena SET invalidado = TRUE WHERE id_colaborador = $1 AND utilizado = FALSE AND invalidado = FALSE', [r.rows[0].id_colaborador]);
-  await pool.query("INSERT INTO recuperacion_contrasena(id_colaborador,codigo_hash,fecha_hora_expiracion) VALUES($1,$2,CURRENT_TIMESTAMP + INTERVAL '10 minutes')", [r.rows[0].id_colaborador, hashCodigo(codigo)]);
-  return { codigo, disponible: true };
+export const solicitarRecuperacion = async (correo: string): Promise<{ codigo?: string; id_recuperacion?: string; disponible: boolean }> => {
+  const cliente = await pool.connect();
+
+  try {
+    await cliente.query('BEGIN');
+
+    const colaborador = await cliente.query<{ id_colaborador: string }>(
+      `
+        SELECT id_colaborador
+        FROM colaborador
+        WHERE correo = $1
+          AND estado = 'activo'
+          AND rol IN ('Administrador', 'Ingeniero')
+        FOR UPDATE;
+      `,
+      [correo],
+    );
+
+    const colaboradorActual = colaborador.rows[0];
+
+    if (!colaboradorActual) {
+      await cliente.query('ROLLBACK');
+      return { disponible: false };
+    }
+
+    const codigo = String(randomInt(100000, 1000000));
+
+    await cliente.query(
+      `
+        UPDATE recuperacion_contrasena
+        SET invalidado = TRUE
+        WHERE id_colaborador = $1
+          AND utilizado = FALSE
+          AND invalidado = FALSE;
+      `,
+      [colaboradorActual.id_colaborador],
+    );
+
+    const creada = await cliente.query<{ id_recuperacion: string }>(
+      `
+        INSERT INTO recuperacion_contrasena (
+          id_colaborador,
+          codigo_hash,
+          fecha_hora_expiracion
+        )
+        VALUES ($1, $2, CURRENT_TIMESTAMP + INTERVAL '10 minutes')
+        RETURNING id_recuperacion;
+      `,
+      [colaboradorActual.id_colaborador, hashCodigo(codigo)],
+    );
+
+    await cliente.query('COMMIT');
+
+    return {
+      codigo,
+      id_recuperacion: creada.rows[0]!.id_recuperacion,
+      disponible: true,
+    };
+  } catch (error) {
+    await cliente.query('ROLLBACK');
+    throw error;
+  } finally {
+    cliente.release();
+  }
+};
+
+export const invalidarRecuperacion = async (id_recuperacion: string): Promise<void> => {
+  await pool.query('UPDATE recuperacion_contrasena SET invalidado = TRUE WHERE id_recuperacion = $1', [id_recuperacion]);
 };
 
 export const confirmarRecuperacion = async (correo: string, codigo: string, nueva: string): Promise<boolean> => {

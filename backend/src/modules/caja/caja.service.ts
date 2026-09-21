@@ -75,7 +75,11 @@ export const abrirCaja = async (
     return { resultado: 'colaborador_inactivo' };
   }
 
-  if (colaborador.rol !== 'Vigilante' && colaborador.rol !== 'Administrador') {
+  if (
+    colaborador.rol !== 'Vigilante' &&
+    colaborador.rol !== 'Administrador' &&
+    colaborador.rol !== 'Ingeniero'
+  ) {
     return { resultado: 'rol_no_permitido' };
   }
 

@@ -60,7 +60,10 @@ export const crearAuditoria = async (
       return { resultado: 'administrador_inactivo' };
     }
 
-    if (administradorActual.rol !== 'Administrador') {
+    if (
+      administradorActual.rol !== 'Administrador' &&
+      administradorActual.rol !== 'Ingeniero'
+    ) {
       await revertir(cliente);
       return { resultado: 'administrador_sin_rol' };
     }

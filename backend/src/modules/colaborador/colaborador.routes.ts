@@ -56,6 +56,7 @@ const validarCrearColaborador = (cuerpo: unknown): CrearColaborador | null => {
     !esTextoObligatorio(cuerpo.documento) ||
     !esTextoObligatorio(cuerpo.usuario) ||
     !esTextoObligatorio(cuerpo.contrasena) ||
+    cuerpo.contrasena.length < 4 ||
     !esRolColaborador(cuerpo.rol) ||
     (cuerpo.estado !== undefined && !esEstadoColaborador(cuerpo.estado)) ||
     (cuerpo.correo !== undefined &&

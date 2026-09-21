@@ -1,6 +1,6 @@
 -- SIGP - PARQUEADERO JAVI
 -- BASE DE DATOS MAESTRA - PostgreSQL 17
--- Instalacion desde cero. Version consolidada: 2026-09-16
+-- Instalacion desde cero. Version consolidada: 2026-09-20
 -- No contiene datos operativos de prueba.
 
 BEGIN;
@@ -11,7 +11,7 @@ CREATE TABLE colaborador (
  documento VARCHAR(30) NOT NULL UNIQUE,
  usuario VARCHAR(80) NOT NULL UNIQUE,
  correo VARCHAR(150),
- password_hash VARCHAR(255) NOT NULL,
+ password_hash TEXT NOT NULL,
  requiere_cambio_contrasena BOOLEAN NOT NULL DEFAULT FALSE,
  rol VARCHAR(20) NOT NULL CHECK (rol IN ('Vigilante','Administrador','Ingeniero')),
  estado VARCHAR(20) NOT NULL DEFAULT 'activo' CHECK (estado IN ('activo','inactivo'))
