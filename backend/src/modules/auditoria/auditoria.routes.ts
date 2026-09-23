@@ -1,6 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import { autenticar, autorizarRoles, rolesAdministrativos } from '../auth/auth.middleware';
-import { crearAuditoria, listarHistorialAuditorias } from './auditoria.service';
+import {
+  actualizarObservacionesAuditoria,
+  crearAuditoria,
+  listarHistorialAuditorias,
+} from './auditoria.service';
 import type {
   CrearAuditoria,
   FiltrosHistorialAuditorias,
@@ -21,6 +25,21 @@ const esFechaValida = (valor: unknown): valor is string =>
   valor.trim().length > 0 &&
   !Number.isNaN(Date.parse(valor));
 
+const validarObservaciones = (cuerpo: unknown): string | null | undefined => {
+  if (
+    !esObjeto(cuerpo) ||
+    Object.keys(cuerpo).length !== 1 ||
+    !('observaciones' in cuerpo) ||
+    (cuerpo.observaciones !== null && typeof cuerpo.observaciones !== 'string')
+  ) {
+    return undefined;
+  }
+
+  return typeof cuerpo.observaciones === 'string'
+    ? cuerpo.observaciones.trim() || null
+    : null;
+};
+
 const tieneSoloCampos = (
   datos: Record<string, unknown>,
   camposPermitidos: string[],
@@ -40,8 +59,9 @@ const validarCrearAuditoria = (
       'bicicletas_fisico',
       'observaciones',
     ]) ||
-    !esIdValido(cuerpo.id_operador_auditado) ||
-    !esIdValido(cuerpo.id_caja) ||
+    (cuerpo.id_operador_auditado !== undefined &&
+      !esIdValido(cuerpo.id_operador_auditado)) ||
+    (cuerpo.id_caja !== undefined && !esIdValido(cuerpo.id_caja)) ||
     !esConteoFisicoValido(cuerpo.carros_fisico) ||
     !esConteoFisicoValido(cuerpo.motos_fisico) ||
     !esConteoFisicoValido(cuerpo.bicicletas_fisico) ||
@@ -54,8 +74,10 @@ const validarCrearAuditoria = (
 
   return {
     id_administrador_auditor,
-    id_operador_auditado: String(cuerpo.id_operador_auditado),
-    id_caja: String(cuerpo.id_caja),
+    ...(cuerpo.id_operador_auditado !== undefined
+      ? { id_operador_auditado: String(cuerpo.id_operador_auditado) }
+      : {}),
+    ...(cuerpo.id_caja !== undefined ? { id_caja: String(cuerpo.id_caja) } : {}),
     carros_fisico: cuerpo.carros_fisico,
     motos_fisico: cuerpo.motos_fisico,
     bicicletas_fisico: cuerpo.bicicletas_fisico,
@@ -169,6 +191,33 @@ export const rutasAuditoria = async (app: FastifyInstance): Promise<void> => {
       }
 
       return listarHistorialAuditorias(filtros);
+    },
+  );
+
+  app.patch<{ Params: { id: string } }>(
+    '/auditorias/:id/observaciones',
+    { preHandler: [autenticar, autorizarRoles(...rolesAdministrativos)] },
+    async (solicitud, respuesta) => {
+      if (!/^\d+$/.test(solicitud.params.id)) {
+        return respuesta.status(400).send({ mensaje: 'Id de auditoría inválido' });
+      }
+
+      const observaciones = validarObservaciones(solicitud.body);
+
+      if (observaciones === undefined) {
+        return respuesta.status(400).send({ mensaje: 'Novedades inválidas' });
+      }
+
+      const resultado = await actualizarObservacionesAuditoria(
+        solicitud.params.id,
+        observaciones,
+      );
+
+      if (resultado.resultado === 'no_encontrada') {
+        return respuesta.status(404).send({ mensaje: 'Auditoría no encontrada' });
+      }
+
+      return resultado.auditoria;
     },
   );
 };

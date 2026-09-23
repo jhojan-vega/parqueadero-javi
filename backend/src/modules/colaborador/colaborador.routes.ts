@@ -182,6 +182,18 @@ export const rutasColaborador = async (
       return respuesta.status(400).send({ mensaje: 'Datos de colaborador inválidos' });
     }
 
+    if (datos.rol === 'Ingeniero') {
+      return respuesta.status(403).send({
+        mensaje: 'No se permite crear colaboradores Ingeniero mediante esta ruta',
+      });
+    }
+
+    if (solicitud.user.rol === 'Administrador' && datos.rol !== 'Vigilante') {
+      return respuesta.status(403).send({
+        mensaje: 'Un Administrador solamente puede crear colaboradores Vigilante',
+      });
+    }
+
     try {
       const colaborador = await crearColaborador(datos);
       return respuesta.status(201).send(colaborador);
@@ -208,6 +220,32 @@ export const rutasColaborador = async (
 
       if (!datos) {
         return respuesta.status(400).send({ mensaje: 'Datos de colaborador inválidos' });
+      }
+
+      const colaboradorActual = await buscarColaboradorPorId(
+        solicitud.params.id,
+      );
+
+      if (!colaboradorActual) {
+        return respuesta.status(404).send({
+          mensaje: 'Colaborador no encontrado',
+        });
+      }
+
+      if (colaboradorActual.rol === 'Ingeniero' || datos.rol === 'Ingeniero') {
+        return respuesta.status(403).send({
+          mensaje: 'No se permite administrar colaboradores Ingeniero mediante esta ruta',
+        });
+      }
+
+      if (
+        solicitud.user.rol === 'Administrador' &&
+        (colaboradorActual.rol !== 'Vigilante' ||
+          (datos.rol !== undefined && datos.rol !== 'Vigilante'))
+      ) {
+        return respuesta.status(403).send({
+          mensaje: 'Un Administrador solamente puede modificar colaboradores Vigilante',
+        });
       }
 
       try {
@@ -244,6 +282,31 @@ export const rutasColaborador = async (
 
       if (!estado) {
         return respuesta.status(400).send({ mensaje: 'Estado de colaborador inválido' });
+      }
+
+      const colaboradorActual = await buscarColaboradorPorId(
+        solicitud.params.id,
+      );
+
+      if (!colaboradorActual) {
+        return respuesta.status(404).send({
+          mensaje: 'Colaborador no encontrado',
+        });
+      }
+
+      if (colaboradorActual.rol === 'Ingeniero') {
+        return respuesta.status(403).send({
+          mensaje: 'No se permite administrar colaboradores Ingeniero mediante esta ruta',
+        });
+      }
+
+      if (
+        solicitud.user.rol === 'Administrador' &&
+        colaboradorActual.rol !== 'Vigilante'
+      ) {
+        return respuesta.status(403).send({
+          mensaje: 'Un Administrador solamente puede cambiar el estado de Vigilantes',
+        });
       }
 
       const colaborador = await cambiarEstadoColaborador(

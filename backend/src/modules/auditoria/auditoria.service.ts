@@ -5,6 +5,7 @@ import type {
   AuditoriaHistorial,
   CrearAuditoria,
   FiltrosHistorialAuditorias,
+  ResultadoActualizarObservacionesAuditoria,
   ResultadoCrearAuditoria,
 } from './auditoria.types';
 
@@ -68,44 +69,51 @@ export const crearAuditoria = async (
       return { resultado: 'administrador_sin_rol' };
     }
 
-    const operador = await cliente.query(
-      `
-        SELECT id_colaborador
-        FROM colaborador
-        WHERE id_colaborador = $1
-        FOR SHARE;
-      `,
-      [datos.id_operador_auditado],
-    );
+    if (datos.id_operador_auditado) {
+      const operador = await cliente.query(
+        `
+          SELECT id_colaborador
+          FROM colaborador
+          WHERE id_colaborador = $1
+          FOR SHARE;
+        `,
+        [datos.id_operador_auditado],
+      );
 
-    if (!operador.rows[0]) {
-      await revertir(cliente);
-      return { resultado: 'operador_no_encontrado' };
+      if (!operador.rows[0]) {
+        await revertir(cliente);
+        return { resultado: 'operador_no_encontrado' };
+      }
     }
 
-    const caja = await cliente.query<{ id_colaborador: string }>(
-      `
-        SELECT id_colaborador
-        FROM caja
-        WHERE id_caja = $1
-        FOR SHARE;
-      `,
-      [datos.id_caja],
-    );
+    if (datos.id_caja) {
+      const caja = await cliente.query<{ id_colaborador: string }>(
+        `
+          SELECT id_colaborador
+          FROM caja
+          WHERE id_caja = $1
+          FOR SHARE;
+        `,
+        [datos.id_caja],
+      );
 
-    const cajaActual = caja.rows[0];
+      const cajaActual = caja.rows[0];
 
-    if (!cajaActual) {
-      await revertir(cliente);
-      return { resultado: 'caja_no_encontrada' };
+      if (!cajaActual) {
+        await revertir(cliente);
+        return { resultado: 'caja_no_encontrada' };
+      }
+
+      if (
+        datos.id_operador_auditado &&
+        cajaActual.id_colaborador !== datos.id_operador_auditado
+      ) {
+        await revertir(cliente);
+        return { resultado: 'caja_no_corresponde_operador' };
+      }
     }
 
-    if (cajaActual.id_colaborador !== datos.id_operador_auditado) {
-      await revertir(cliente);
-      return { resultado: 'caja_no_corresponde_operador' };
-    }
-
-    const auditoria = await cliente.query<Auditoria>(
+    const auditoria = await cliente.query<AuditoriaHistorial>(
       `
         INSERT INTO auditoria (
           id_administrador_auditor,
@@ -121,8 +129,8 @@ export const crearAuditoria = async (
         )
         SELECT
           $1,
-          $2,
-          $3,
+          $2::BIGINT,
+          $3::BIGINT,
           COUNT(*) FILTER (WHERE tipo_vehiculo = 'Carro')::INTEGER,
           $4,
           COUNT(*) FILTER (WHERE tipo_vehiculo = 'Moto')::INTEGER,
@@ -132,12 +140,16 @@ export const crearAuditoria = async (
           $7
         FROM servicio
         WHERE estado = 'activo'
-        RETURNING ${columnasAuditoria};
+        RETURNING
+          ${columnasAuditoria},
+          carros_fisico - carros_sistema AS diferencia_carros,
+          motos_fisico - motos_sistema AS diferencia_motos,
+          bicicletas_fisico - bicicletas_sistema AS diferencia_bicicletas;
       `,
       [
         datos.id_administrador_auditor,
-        datos.id_operador_auditado,
-        datos.id_caja,
+        datos.id_operador_auditado ?? null,
+        datos.id_caja ?? null,
         datos.carros_fisico,
         datos.motos_fisico,
         datos.bicicletas_fisico,
@@ -197,4 +209,27 @@ export const listarHistorialAuditorias = async (
   );
 
   return resultado.rows;
+};
+
+export const actualizarObservacionesAuditoria = async (
+  id_auditoria: string,
+  observaciones: string | null,
+): Promise<ResultadoActualizarObservacionesAuditoria> => {
+  const resultado = await pool.query<AuditoriaHistorial>(
+    `
+      UPDATE auditoria
+      SET observaciones = $1
+      WHERE id_auditoria = $2
+      RETURNING
+        ${columnasAuditoria},
+        carros_fisico - carros_sistema AS diferencia_carros,
+        motos_fisico - motos_sistema AS diferencia_motos,
+        bicicletas_fisico - bicicletas_sistema AS diferencia_bicicletas;
+    `,
+    [observaciones, id_auditoria],
+  );
+
+  return resultado.rows[0]
+    ? { resultado: 'actualizada', auditoria: resultado.rows[0] }
+    : { resultado: 'no_encontrada' };
 };

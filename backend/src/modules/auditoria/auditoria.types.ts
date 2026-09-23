@@ -1,7 +1,7 @@
 export interface CrearAuditoria {
   id_administrador_auditor: string;
-  id_operador_auditado: string;
-  id_caja: string;
+  id_operador_auditado?: string;
+  id_caja?: string;
   carros_fisico: number;
   motos_fisico: number;
   bicicletas_fisico: number;
@@ -29,6 +29,10 @@ export interface AuditoriaHistorial extends Auditoria {
   diferencia_bicicletas: number;
 }
 
+export type ResultadoActualizarObservacionesAuditoria =
+  | { resultado: 'actualizada'; auditoria: AuditoriaHistorial }
+  | { resultado: 'no_encontrada' };
+
 export interface FiltrosHistorialAuditorias {
   id_operador_auditado?: string;
   id_administrador_auditor?: string;
@@ -37,7 +41,7 @@ export interface FiltrosHistorialAuditorias {
 }
 
 export type ResultadoCrearAuditoria =
-  | { resultado: 'creada'; auditoria: Auditoria }
+  | { resultado: 'creada'; auditoria: AuditoriaHistorial }
   | { resultado: 'administrador_no_encontrado' }
   | { resultado: 'administrador_inactivo' }
   | { resultado: 'administrador_sin_rol' }

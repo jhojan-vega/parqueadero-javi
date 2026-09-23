@@ -215,7 +215,7 @@ CREATE TABLE auditoria (
  id_auditoria BIGSERIAL PRIMARY KEY,
  fecha_hora TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  id_administrador_auditor BIGINT NOT NULL REFERENCES colaborador(id_colaborador),
- id_operador_auditado BIGINT NOT NULL REFERENCES colaborador(id_colaborador),
+ id_operador_auditado BIGINT REFERENCES colaborador(id_colaborador),
  id_caja BIGINT REFERENCES caja(id_caja),
  carros_sistema INTEGER NOT NULL DEFAULT 0,
  carros_fisico INTEGER NOT NULL DEFAULT 0,
@@ -225,6 +225,9 @@ CREATE TABLE auditoria (
  bicicletas_fisico INTEGER NOT NULL DEFAULT 0,
  observaciones TEXT
 );
+
+COMMENT ON TABLE auditoria IS
+  'Control histórico e independiente de ocupación física frente a servicios activos registrados.';
 
 INSERT INTO tarifa(tipo_vehiculo,valor_inicial,minutos_iniciales,valor_fraccion,minutos_fraccion,valor_pernocta,valor_turno_am,valor_turno_pm,fecha_hora_inicio) VALUES
 ('Carro',3000,120,300,15,9000,NULL,NULL,TIMESTAMP '2026-09-15 00:00:00'),
