@@ -72,5 +72,83 @@ main { padding: 24px 28px 35px; }.dashboard-page { max-width: 1480px; margin: 0 
 .vehicle-type-icon--carro { color: #147ed1; }
 .vehicle-type-icon--moto { color: #168b4d; }
 .vehicle-type-icon--bicicleta { color: #d7a400; }
+
+/* Escala operativa: 14px es el mínimo para información funcional visible. */
+:root { --font-size-min: 14px; --font-size-body: 15px; --font-size-emphasis: 16px; --font-size-subtitle: 19px; --font-size-title: 24px; }
+.header-date, .account-copy strong, .account-copy small { font-size: var(--font-size-min); color: var(--ink); }
+.header-time { font-size: 20px; font-weight: 900; }
+.nav-item, .sidebar-footer span { font-size: var(--font-size-min); }
+.eyebrow, .hero-copy span, .module-page-header .eyebrow, .section-heading .eyebrow, .card-title .eyebrow { font-size: var(--font-size-min); }
+main table { font-size: var(--font-size-min); }
+main th { font-size: var(--font-size-min); color: #36526f; font-weight: 900; padding-top: 12px; padding-bottom: 12px; }
+main td { font-size: var(--font-size-min); padding-top: 13px; padding-bottom: 13px; }
+main button, main input, main select, main textarea { font-size: var(--font-size-min); }
+main input::placeholder, main textarea::placeholder { font-size: var(--font-size-min); color: #526d88; opacity: 1; }
+main label, main label small, main .module-message, main .form-message, main .readonly-note, main .empty-inline { font-size: var(--font-size-min); }
+main .module-page-header p, main .section-heading p, main .module-placeholder p, main .empty-state small, main .daily-summary span, main .daily-summary small, main .metric-content small { font-size: var(--font-size-min); color: #46617e; }
+main .section-heading h2, main .card-title h2, main .attention-card h2 { font-size: var(--font-size-subtitle); }
+main .module-page-header h2 { font-size: var(--font-size-title); }
+main .metric-content > span, main .metric-content em, main .progress-row b { font-size: var(--font-size-min); }
+main .metric-content strong { font-size: 26px; }
+main .status, main .state-pill, main .rate-status, main .audit-status, main .audit-novelty-badge, main .demo-badge { min-height: 28px; padding: 5px 10px; font-size: var(--font-size-min); }
+main .card-title button, main .table-actions button, main .boxes-table button, main .audit-history-table button, main .open-boxes-grid button { font-size: var(--font-size-min); min-height: 36px; }
+main .services-table th, main .services-table td { font-size: var(--font-size-min); }
+main .services-table .plate { font-size: 20px; }
+main .vehicle-type-indicator, main .vehicle-type-indicator--compact { font-size: var(--font-size-min); }
+main .service-dialog label, main .service-summary dt, main .service-summary dd, main .payment-priority span { font-size: var(--font-size-min); }
+main .service-summary dd, main .payment-priority strong { font-size: var(--font-size-emphasis); }
+main .payment-priority-total strong { font-size: 27px; }
+main .payment-priority-plate .plate { font-size: 22px; }
+main .boxes-summary span, main .box-detail dt, main .audit-confirmation dt, main .audit-confirm-counts span, main .physical-counts span, main .audit-difference p, main .audit-difference small { font-size: var(--font-size-min); }
+main .open-boxes-grid small, main .open-boxes-grid strong, main .box-detail dd, main .audit-confirmation dd, main .audit-difference h3 { font-size: var(--font-size-emphasis); }
+main .boxes-filters select, main .boxes-filters input, main .boxes-filters label, main .audit-filters select, main .audit-filters input, main .audit-filters label { font-size: var(--font-size-min); }
+main .rates-current small, main .rates-history small, main .rates-current p, main .rates-history p, main .rate-status { font-size: var(--font-size-min); }
+.auth-card label, .auth-card input, .auth-card > p:not(.form-message), .auth-card .text-action, .auth-card .form-message, .auth-note, .password-field button, .auth-submit, .account-dropdown button { font-size: var(--font-size-min) !important; }
+.printable-receipt, .printable-receipt p, .printable-receipt button { font-size: var(--font-size-min); }
+.printable-receipt .receipt-code { font-size: 20px; }
+.printable-receipt .plate { font-size: 22px; }
+@media print { .printable-receipt, .printable-receipt p, .printable-receipt button { font-size: 14px; } .printable-receipt .receipt-code, .printable-receipt .plate { font-size: 20px; } }
+
+/* Accesibilidad específica para campos de credenciales y cierre financiero. */
+.auth-card input, .auth-card .password-field input, .collaborator-form input[type="text"], .collaborator-form input[type="password"] { min-height: 52px; padding: 0 15px; font-size: 16px !important; font-weight: 600; }
+.auth-card label, .collaborator-form label { gap: 8px; font-size: 16px; }
+.close-cash label input { min-height: 54px; padding: 0 15px; color: var(--navy); font-size: 19px !important; font-weight: 900; letter-spacing: .02em; }
+.verification-result p { font-size: 16px; font-weight: 700; }
+
+/* Código de recibo: el dato canónico no cambia; solo se mejora su lectura. */
+.receipt-code { display: inline-flex; align-items: baseline; gap: .25em; color: #185c92; font-size: 16px; font-weight: 900; letter-spacing: .04em; white-space: nowrap; }
+.receipt-code > span { font-size: 1.25em; line-height: 1; }
+.receipt-code > b { font-size: 1em; }
+.payment-priority-receipt .receipt-code { font-size: 18px; color: var(--navy); }
+
+/* Recibos compactos en pantalla e impresión térmica de 58 mm. */
+.printable-receipt { width: min(100%, 360px); margin: 0 auto; padding: 18px; text-align: center; }
+.printable-receipt > header { display: grid; gap: 3px; margin-bottom: 9px; color: var(--navy); }
+.printable-receipt > header strong { font-size: 18px; }
+.printable-receipt > header span { font-size: 14px; }
+.printable-receipt h2 { margin: 4px 0 7px; font-size: 18px; }
+.printable-receipt > .receipt-code { font-size: 22px; }
+.printable-receipt p { margin: 8px 0; }
+.printable-receipt .receipt-plate { margin: 12px 0 8px; }
+.printable-receipt .receipt-plate .plate, .printable-receipt .receipt-plate .identifier { font-size: 24px; font-weight: 900; }
+.printable-receipt .receipt-vehicle-type { display: flex; justify-content: center; margin: 7px 0; }
+.printable-receipt .receipt-date, .printable-receipt .receipt-priority, .printable-receipt .receipt-details { display: grid; gap: 2px; color: var(--ink); font-size: 14px; }
+.printable-receipt .receipt-date span, .printable-receipt .receipt-priority span { color: #46617e; font-size: 14px; font-weight: 900; text-transform: uppercase; }
+.printable-receipt .receipt-priority { padding: 8px 0; border-top: 1px dashed #b7c8d8; border-bottom: 1px dashed #b7c8d8; }
+.printable-receipt .receipt-priority strong { font-size: 19px; }
+.printable-receipt .payment-total strong { color: var(--navy); font-size: 24px; }
+.printable-receipt .receipt-details { margin: 9px 0; color: #36526f; }
+.printable-receipt .receipt-keep { margin-top: 13px; font-size: 14px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.printable-receipt .receipt-actions { margin-top: 12px; }
+@media print { @page { size: auto; margin: 2mm; } body { width: 54mm; min-width: 54mm; background: #fff; } body * { visibility: hidden; } .printable-receipt, .printable-receipt * { visibility: visible; } .printable-receipt { position: absolute; inset: 0; width: 54mm; margin: 0; padding: 0; color: #000; box-shadow: none; font-size: 11px; } .printable-receipt > header { margin-bottom: 4px; } .printable-receipt > header strong { font-size: 14px; } .printable-receipt > header span, .printable-receipt p, .printable-receipt .receipt-date, .printable-receipt .receipt-priority, .printable-receipt .receipt-details, .printable-receipt .receipt-date span, .printable-receipt .receipt-priority span, .printable-receipt .receipt-keep { font-size: 11px; } .printable-receipt h2 { display: none; } .printable-receipt > .receipt-code { font-size: 18px; } .printable-receipt .receipt-plate .plate, .printable-receipt .receipt-plate .identifier { font-size: 18px; } .printable-receipt .receipt-priority strong { font-size: 15px; } .printable-receipt .payment-total strong { font-size: 18px; } .printable-receipt p { margin: 4px 0; } .printable-receipt .receipt-actions { display: none; } }
+
+/* El recibo vive dentro del modal: su cadena debe conservarse visible al imprimir. */
+@media print {
+  html, body, #root { width: 54mm !important; min-width: 54mm !important; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+  .app-shell, .app-content, main, .services-page, .dialog-backdrop, .service-dialog, .printable-receipt { visibility: visible !important; }
+  .app-shell, .app-content, main, .services-page, .dialog-backdrop, .service-dialog { position: static !important; display: block !important; width: auto !important; min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; flex: none !important; background: transparent !important; box-shadow: none !important; border: 0 !important; }
+  .sidebar, .header, .module-page-header, .services-toolbar, .services-table-wrap, .dialog-close { display: none !important; }
+  .printable-receipt { position: static !important; display: block !important; width: 54mm !important; min-width: 54mm !important; max-width: 54mm !important; margin: 0 !important; padding: 0 !important; }
+}
 .payment-vehicle-type { margin: -4px 0 10px; }
 .receipt-vehicle-type { display: flex; justify-content: center; margin: 7px 0; }
