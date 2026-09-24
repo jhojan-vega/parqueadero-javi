@@ -86,25 +86,20 @@ export const abrirCaja = async (
   const resultado = await pool.query<Caja>(
     `
       INSERT INTO caja (turno, id_colaborador)
-      SELECT
+      VALUES (
         CASE
           WHEN CURRENT_TIME >= TIME '06:00:00'
-            AND CURRENT_TIME < TIME '13:00:00' THEN 'AM'
+            AND CURRENT_TIME < TIME '13:00:00' THEN 'T1'
           WHEN CURRENT_TIME >= TIME '13:00:00'
-            AND CURRENT_TIME < TIME '22:00:00' THEN 'PM'
+            AND CURRENT_TIME < TIME '22:00:00' THEN 'T2'
+          ELSE 'T3'
         END,
         $1
-      WHERE CURRENT_TIME >= TIME '06:00:00'
-        AND CURRENT_TIME < TIME '22:00:00'
+      )
       RETURNING ${columnasCaja};
     `,
     [id_colaborador],
   );
-
-  if (!resultado.rows[0]) {
-    return { resultado: 'fuera_horario' };
-  }
-
   return { resultado: 'abierta', caja: resultado.rows[0] };
 };
 

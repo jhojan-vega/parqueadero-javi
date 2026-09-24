@@ -52,7 +52,6 @@ export const buscarTarifaPorId = async (
 };
 
 export const crearTarifa = async (datos: CrearTarifa): Promise<Tarifa> => {
-  const esBicicleta = datos.tipo_vehiculo === 'Bicicleta';
   const resultado = await pool.query<Tarifa>(
     `
       INSERT INTO tarifa (
@@ -71,13 +70,13 @@ export const crearTarifa = async (datos: CrearTarifa): Promise<Tarifa> => {
     `,
     [
       datos.tipo_vehiculo,
-      esBicicleta ? null : datos.valor_inicial,
-      esBicicleta ? null : datos.minutos_iniciales,
-      esBicicleta ? null : datos.valor_fraccion,
-      esBicicleta ? null : datos.minutos_fraccion,
-      datos.valor_pernocta,
-      esBicicleta ? datos.valor_turno_am : null,
-      esBicicleta ? datos.valor_turno_pm : null,
+      datos.valor_inicial,
+      datos.minutos_iniciales,
+      datos.valor_fraccion,
+      datos.minutos_fraccion,
+      null,
+      null,
+      null,
       datos.fecha_hora_inicio,
     ],
   );

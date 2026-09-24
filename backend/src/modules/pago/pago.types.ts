@@ -23,7 +23,7 @@ export interface ReciboSalidaServicio {
   medio_pago: MedioPago;
   id_pago: string;
   id_caja: string;
-  turno: 'AM' | 'PM';
+  turno: 'AM' | 'PM' | 'T1' | 'T2' | 'T3';
   id_colaborador_salida: string;
 }
 

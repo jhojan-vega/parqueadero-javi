@@ -1,8 +1,9 @@
 export type EstadoCaja = 'abierta' | 'cerrada' | 'pendiente'
+export type TurnoCaja = 'AM' | 'PM' | 'T1' | 'T2' | 'T3'
 
 export interface CajaAbiertaDetalle {
   id_caja: string
-  turno: 'AM' | 'PM'
+  turno: TurnoCaja
   fecha_hora_apertura: string
   fecha_hora_cierre: string | null
   recaudo_total: number

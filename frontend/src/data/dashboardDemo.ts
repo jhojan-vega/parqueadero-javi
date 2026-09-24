@@ -1,9 +1,9 @@
 import type { NavigationItem, UserRole } from '../types/ui'
 
 export const navigationByRole: Record<UserRole, NavigationItem[]> = {
-  Vigilante: [{ label: 'Inicio', icon: '⌂' }, { label: 'Servicios', icon: '▣' }, { label: 'Caja', icon: '▤' }],
-  Administrador: [{ label: 'Inicio', icon: '⌂' }, { label: 'Servicios', icon: '▣' }, { label: 'Cajas', icon: '▤' }, { label: 'Auditoría', icon: '✓' }, { label: 'Tarifas', icon: '◇' }, { label: 'Colaboradores', icon: '♙' }],
-  Ingeniero: [{ label: 'Inicio', icon: '⌂' }, { label: 'Servicios', icon: '▣' }, { label: 'Cajas', icon: '▤' }, { label: 'Auditoría', icon: '✓' }, { label: 'Tarifas', icon: '◇' }, { label: 'Colaboradores', icon: '♙' }],
+  Vigilante: [{ label: 'Inicio', icon: '⌂' }, { label: 'Servicios', icon: '▣' }, { label: 'Caja', icon: '$' }],
+  Administrador: [{ label: 'Inicio', icon: '⌂' }, { label: 'Servicios', icon: '▣' }, { label: 'Cajas', icon: '$' }, { label: 'Auditoría', icon: '✓' }, { label: 'Tarifas', icon: '◇' }, { label: 'Colaboradores', icon: '♙' }],
+  Ingeniero: [{ label: 'Inicio', icon: '⌂' }, { label: 'Servicios', icon: '▣' }, { label: 'Cajas', icon: '$' }, { label: 'Auditoría', icon: '✓' }, { label: 'Tarifas', icon: '◇' }, { label: 'Colaboradores', icon: '♙' }],
 }
 
 export const availabilityDemo = [

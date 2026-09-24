@@ -43,32 +43,6 @@ const validarCrearTarifa = (cuerpo: unknown): CrearTarifa | null => {
     return null;
   }
 
-  if (cuerpo.tipo_vehiculo === 'Bicicleta') {
-    if (
-      !tieneSoloCampos(cuerpo, [
-        'tipo_vehiculo',
-        'valor_pernocta',
-        'valor_turno_am',
-        'valor_turno_pm',
-        'fecha_hora_inicio',
-      ]) ||
-      !esNumeroEnteroNoNegativo(cuerpo.valor_pernocta) ||
-      !esNumeroEnteroNoNegativo(cuerpo.valor_turno_am) ||
-      !esNumeroEnteroNoNegativo(cuerpo.valor_turno_pm) ||
-      !esFechaHoraValida(cuerpo.fecha_hora_inicio)
-    ) {
-      return null;
-    }
-
-    return {
-      tipo_vehiculo: 'Bicicleta',
-      valor_pernocta: cuerpo.valor_pernocta,
-      valor_turno_am: cuerpo.valor_turno_am,
-      valor_turno_pm: cuerpo.valor_turno_pm,
-      fecha_hora_inicio: cuerpo.fecha_hora_inicio.trim(),
-    };
-  }
-
   if (
     !tieneSoloCampos(cuerpo, [
       'tipo_vehiculo',
@@ -76,14 +50,12 @@ const validarCrearTarifa = (cuerpo: unknown): CrearTarifa | null => {
       'minutos_iniciales',
       'valor_fraccion',
       'minutos_fraccion',
-      'valor_pernocta',
       'fecha_hora_inicio',
     ]) ||
     !esNumeroEnteroNoNegativo(cuerpo.valor_inicial) ||
     !esNumeroEnteroNoNegativo(cuerpo.minutos_iniciales) ||
     !esNumeroEnteroNoNegativo(cuerpo.valor_fraccion) ||
     !esNumeroEnteroNoNegativo(cuerpo.minutos_fraccion) ||
-    !esNumeroEnteroNoNegativo(cuerpo.valor_pernocta) ||
     !esFechaHoraValida(cuerpo.fecha_hora_inicio)
   ) {
     return null;
@@ -95,7 +67,6 @@ const validarCrearTarifa = (cuerpo: unknown): CrearTarifa | null => {
     minutos_iniciales: cuerpo.minutos_iniciales,
     valor_fraccion: cuerpo.valor_fraccion,
     minutos_fraccion: cuerpo.minutos_fraccion,
-    valor_pernocta: cuerpo.valor_pernocta,
     fecha_hora_inicio: cuerpo.fecha_hora_inicio.trim(),
   };
 };

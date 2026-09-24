@@ -36,7 +36,7 @@ CREATE TABLE tarifa (
  minutos_iniciales INTEGER,
  valor_fraccion INTEGER,
  minutos_fraccion INTEGER,
- valor_pernocta INTEGER NOT NULL,
+ valor_pernocta INTEGER,
  valor_turno_am INTEGER,
  valor_turno_pm INTEGER,
  fecha_hora_inicio TIMESTAMP NOT NULL
@@ -81,17 +81,6 @@ END; $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_generar_codigo_recibo BEFORE INSERT ON servicio
 FOR EACH ROW EXECUTE FUNCTION generar_codigo_recibo();
 
-CREATE OR REPLACE FUNCTION validar_horario_entrada() RETURNS TRIGGER AS $$
-BEGIN
- IF NEW.fecha_hora_entrada::TIME < TIME '06:00:00'
- OR NEW.fecha_hora_entrada::TIME > TIME '22:00:00' THEN
-  RAISE EXCEPTION 'Entrada no permitida. Horario del parqueadero: 06:00 a 22:00';
- END IF;
- RETURN NEW;
-END; $$ LANGUAGE plpgsql;
-CREATE TRIGGER trg_validar_horario_entrada BEFORE INSERT ON servicio
-FOR EACH ROW EXECUTE FUNCTION validar_horario_entrada();
-
 CREATE OR REPLACE FUNCTION calcular_tarifa_diurna(p_minutos INTEGER,p_id_tarifa BIGINT)
 RETURNS INTEGER AS $$
 DECLARE vi INTEGER; mi INTEGER; vf INTEGER; mf INTEGER;
@@ -99,66 +88,32 @@ BEGIN
  SELECT valor_inicial,minutos_iniciales,valor_fraccion,minutos_fraccion
  INTO vi,mi,vf,mf FROM tarifa WHERE id_tarifa=p_id_tarifa;
  IF NOT FOUND THEN RAISE EXCEPTION 'Tarifa % no encontrada',p_id_tarifa; END IF;
+ IF vi IS NULL OR mi IS NULL OR vf IS NULL OR mf IS NULL OR mf <= 0 THEN
+  RAISE EXCEPTION 'Tarifa % no corresponde al modelo vigente por minutos',p_id_tarifa;
+ END IF;
  IF p_minutos <= mi THEN RETURN vi; END IF;
  RETURN vi + CEIL((p_minutos-mi)::NUMERIC/mf)::INTEGER*vf;
 END; $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION calcular_tarifa_servicio(p_entrada TIMESTAMP,p_salida TIMESTAMP,p_id_tarifa BIGINT)
 RETURNS INTEGER AS $$
-DECLARE
- vi INTEGER; mi INTEGER; vf INTEGER; mf INTEGER; vp INTEGER;
- ini_noche TIMESTAMP; cierre TIMESTAMP; fin_noche TIMESTAMP;
- mt INTEGER; antes INTEGER:=0; despues INTEGER:=0; total INTEGER:=0;
+DECLARE mt INTEGER;
 BEGIN
  IF p_salida<p_entrada THEN RAISE EXCEPTION 'La salida no puede ser anterior a la entrada'; END IF;
- SELECT valor_inicial,minutos_iniciales,valor_fraccion,minutos_fraccion,valor_pernocta
- INTO vi,mi,vf,mf,vp FROM tarifa WHERE id_tarifa=p_id_tarifa;
- IF NOT FOUND THEN RAISE EXCEPTION 'Tarifa % no encontrada',p_id_tarifa; END IF;
- mt:=FLOOR(EXTRACT(EPOCH FROM(p_salida-p_entrada))/60)::INTEGER;
- ini_noche:=DATE_TRUNC('day',p_entrada)+INTERVAL '21 hours';
- cierre:=DATE_TRUNC('day',ini_noche)+INTERVAL '22 hours';
- fin_noche:=ini_noche+INTERVAL '10 hours';
- IF p_salida<=cierre THEN RETURN calcular_tarifa_diurna(mt,p_id_tarifa); END IF;
- IF p_entrada<fin_noche AND p_salida>cierre THEN
-  IF p_entrada<ini_noche THEN
-   antes:=FLOOR(EXTRACT(EPOCH FROM(ini_noche-p_entrada))/60)::INTEGER;
-  END IF;
-  IF antes>0 THEN total:=total+calcular_tarifa_diurna(antes,p_id_tarifa); END IF;
-  total:=total+vp;
-  IF p_salida>fin_noche THEN
-   despues:=CEIL(EXTRACT(EPOCH FROM(p_salida-fin_noche))/60)::INTEGER;
-   IF despues>0 THEN total:=total+CEIL(despues::NUMERIC/mf)::INTEGER*vf; END IF;
-  END IF;
-  RETURN total;
- END IF;
+ mt:=CEIL(EXTRACT(EPOCH FROM(p_salida-p_entrada))/60)::INTEGER;
  RETURN calcular_tarifa_diurna(mt,p_id_tarifa);
 END; $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION calcular_tarifa_bicicleta(p_entrada TIMESTAMP,p_salida TIMESTAMP,p_id_tarifa BIGINT)
 RETURNS INTEGER AS $$
-DECLARE
- vam INTEGER; vpm INTEGER; vpn INTEGER;
- am TIMESTAMP; pm TIMESTAMP; noche TIMESTAMP; cierre TIMESTAMP; fin_noche TIMESTAMP;
- total INTEGER:=0;
 BEGIN
  IF p_salida<p_entrada THEN RAISE EXCEPTION 'La salida no puede ser anterior a la entrada'; END IF;
- SELECT valor_turno_am,valor_turno_pm,valor_pernocta INTO vam,vpm,vpn
- FROM tarifa WHERE id_tarifa=p_id_tarifa;
- IF NOT FOUND THEN RAISE EXCEPTION 'Tarifa % no encontrada',p_id_tarifa; END IF;
- am:=DATE_TRUNC('day',p_entrada)+INTERVAL '6 hours';
- pm:=DATE_TRUNC('day',p_entrada)+INTERVAL '13 hours';
- noche:=DATE_TRUNC('day',p_entrada)+INTERVAL '21 hours';
- cierre:=DATE_TRUNC('day',p_entrada)+INTERVAL '22 hours';
- fin_noche:=noche+INTERVAL '10 hours';
- IF p_entrada<pm AND p_salida>am THEN total:=total+vam; END IF;
- IF p_entrada<cierre AND p_salida>pm THEN total:=total+vpm; END IF;
- IF p_salida>cierre AND p_entrada<fin_noche THEN total:=total+vpn; END IF;
- RETURN total;
+ RETURN calcular_tarifa_servicio(p_entrada,p_salida,p_id_tarifa);
 END; $$ LANGUAGE plpgsql;
 
 CREATE TABLE caja (
  id_caja BIGSERIAL PRIMARY KEY,
- turno VARCHAR(10) NOT NULL CHECK(turno IN('AM','PM')),
+ turno VARCHAR(10) NOT NULL CHECK(turno IN('AM','PM','T1','T2','T3')),
  fecha_hora_apertura TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  fecha_hora_cierre TIMESTAMP,
  recaudo_total INTEGER NOT NULL DEFAULT 0,
@@ -229,9 +184,16 @@ CREATE TABLE auditoria (
 COMMENT ON TABLE auditoria IS
   'Control histórico e independiente de ocupación física frente a servicios activos registrados.';
 
+COMMENT ON COLUMN tarifa.valor_pernocta IS
+  'Campo legacy del modelo anterior; las tarifas vigentes de 24 horas lo almacenan como NULL.';
+COMMENT ON COLUMN tarifa.valor_turno_am IS
+  'Campo legacy del modelo anterior de Bicicleta; las tarifas vigentes de 24 horas lo almacenan como NULL.';
+COMMENT ON COLUMN tarifa.valor_turno_pm IS
+  'Campo legacy del modelo anterior de Bicicleta; las tarifas vigentes de 24 horas lo almacenan como NULL.';
+
 INSERT INTO tarifa(tipo_vehiculo,valor_inicial,minutos_iniciales,valor_fraccion,minutos_fraccion,valor_pernocta,valor_turno_am,valor_turno_pm,fecha_hora_inicio) VALUES
-('Carro',3000,120,300,15,9000,NULL,NULL,TIMESTAMP '2026-09-15 00:00:00'),
-('Moto',2000,120,200,15,5000,NULL,NULL,TIMESTAMP '2026-09-15 00:00:00'),
-('Bicicleta',NULL,NULL,NULL,NULL,2000,1000,1000,TIMESTAMP '2026-09-15 00:00:00');
+('Carro',3000,120,300,20,NULL,NULL,NULL,TIMESTAMP '2026-09-23 00:00:00'),
+('Moto',2000,120,200,20,NULL,NULL,NULL,TIMESTAMP '2026-09-23 00:00:00'),
+('Bicicleta',1000,240,200,60,NULL,NULL,NULL,TIMESTAMP '2026-09-23 00:00:00');
 
 COMMIT;

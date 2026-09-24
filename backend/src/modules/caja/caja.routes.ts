@@ -198,12 +198,6 @@ export const rutasCaja = async (app: FastifyInstance): Promise<void> => {
         });
       }
 
-      if (resultado.resultado === 'fuera_horario') {
-        return respuesta.status(409).send({
-          mensaje: 'No es posible abrir caja fuera del horario operativo',
-        });
-      }
-
       return respuesta.status(201).send(resultado.caja);
     } catch (error) {
       if (

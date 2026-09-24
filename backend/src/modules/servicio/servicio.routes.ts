@@ -159,13 +159,6 @@ const esConflictoPlacaActiva = (error: unknown): boolean =>
   'constraint' in error &&
   error.constraint === 'uq_placa_servicio_activo';
 
-const esErrorHorarioEntrada = (error: unknown): boolean =>
-  typeof error === 'object' &&
-  error !== null &&
-  'message' in error &&
-  typeof error.message === 'string' &&
-  error.message.includes('Entrada no permitida');
-
 export const rutasServicio = async (app: FastifyInstance): Promise<void> => {
   app.get('/servicios/activos', { preHandler: [autenticar, autorizarRoles(...rolesOperativos)] }, async () => listarServiciosActivos());
 
@@ -225,12 +218,6 @@ export const rutasServicio = async (app: FastifyInstance): Promise<void> => {
       if (esConflictoPlacaActiva(error)) {
         return respuesta.status(409).send({
           mensaje: 'La placa ya tiene un servicio activo',
-        });
-      }
-
-      if (esErrorHorarioEntrada(error)) {
-        return respuesta.status(400).send({
-          mensaje: 'Entrada no permitida en el horario actual del parqueadero',
         });
       }
 

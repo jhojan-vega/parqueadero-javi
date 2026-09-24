@@ -1,4 +1,4 @@
-export type TurnoCaja = 'AM' | 'PM';
+export type TurnoCaja = 'AM' | 'PM' | 'T1' | 'T2' | 'T3';
 export type EstadoCaja = 'abierta' | 'cerrada' | 'pendiente';
 
 export interface Caja {
@@ -23,8 +23,7 @@ export type ResultadoAperturaCaja =
   | { resultado: 'abierta'; caja: Caja }
   | { resultado: 'colaborador_no_encontrado' }
   | { resultado: 'colaborador_inactivo' }
-  | { resultado: 'rol_no_permitido' }
-  | { resultado: 'fuera_horario' };
+  | { resultado: 'rol_no_permitido' };
 
 export interface VerificacionCaja {
   recaudo_total: number;

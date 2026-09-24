@@ -199,7 +199,7 @@ export const calcularSalidaServicio = async (
         tipo_vehiculo,
         fecha_hora_entrada,
         fecha_hora_salida_calculada,
-        FLOOR(
+        CEIL(
           EXTRACT(
             EPOCH FROM (fecha_hora_salida_calculada - fecha_hora_entrada)
           ) / 60

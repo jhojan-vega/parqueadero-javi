@@ -19,7 +19,7 @@ interface ServicioBloqueado {
 
 interface CajaBloqueada {
   id_caja: string;
-  turno: 'AM' | 'PM';
+  turno: 'AM' | 'PM' | 'T1' | 'T2' | 'T3';
   id_colaborador: string;
   estado: 'abierta' | 'cerrada' | 'pendiente';
 }
@@ -137,7 +137,7 @@ export const registrarSalidaConPago = async (
     const calculo = await cliente.query<CalculoFinal>(
       `
         SELECT
-          FLOOR(
+          CEIL(
             EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP::TIMESTAMP - fecha_hora_entrada)) / 60
           )::INTEGER AS tiempo_total,
           CASE

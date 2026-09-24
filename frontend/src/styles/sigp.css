@@ -36,3 +36,41 @@ main { padding: 24px 28px 35px; }.dashboard-page { max-width: 1480px; margin: 0 
 .rates-page { max-width: 1320px; margin: 0 auto; }.rates-current { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }.rates-current article, .rate-new, .rates-history article { padding: 20px; border: 1px solid #e1e9f1; border-radius: 12px; background: #fff; box-shadow: 0 8px 18px rgba(16,42,67,.06); }.rates-current h3 { margin: 0 0 14px; color: var(--navy); }.rates-current p { display: flex; justify-content: space-between; gap: 8px; margin: 8px 0; color: var(--muted); }.rates-current strong { color: var(--navy); }.rates-current small, .rates-history small { color: var(--muted); }.rate-new { margin: 26px 0; }.rate-new form, .rate-new label { display: grid; gap: 7px; color: var(--ink); font-size: 14px; font-weight: 800; }.rate-new form { max-width: 850px; }.rate-new select, .rate-new input { min-height: 42px; border: 1px solid #cbd8e4; border-radius: 7px; padding: 0 10px; font: inherit; }.rate-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; margin: 15px 0; }.rate-confirm { max-width: 700px; }.rate-confirm h2 { color: var(--navy); }.rate-confirm .text-action { min-height: 43px; margin-right: 10px; border: 1px solid #cbd8e4; border-radius: 8px; padding: 0 15px; color: var(--navy); background: #fff; font-weight: 800; }.rates-history { display: grid; gap: 10px; }.rates-history article > div { display: flex; align-items: center; gap: 10px; color: var(--navy); }.rates-history p { margin: 10px 0; color: var(--muted); }.rate-status { border-radius: 99px; padding: 4px 8px; font-size: 10px; font-weight: 900; }.rate-status.vigente { color: #167048; background: #daf3e6; }.rate-status.programada { color: #7c5a00; background: #fff0b8; }.rate-status.histórica { color: #53687d; background: #e9eef3; }@media (max-width: 760px) { .rates-current, .rate-fields { grid-template-columns: 1fr; } }
 .my-cash-dashboard { display: flex; flex-direction: column; }.cash-dashboard-state { display: grid; gap: 8px; padding: 13px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }.cash-dashboard-state p { margin: 0; color: var(--ink); font-weight: 800; }.my-cash-dashboard > button { align-self: flex-start; margin-top: 17px; border: 1px solid #cbd8e4; border-radius: 8px; padding: 8px 12px; color: var(--navy); background: #fff; font-weight: 800; }.my-cash-dashboard .daily-summary { padding-top: 16px; }
 .audit-history-alert { background: #fff5f5; }.audit-history-review { background: #fffaf0; }.audit-history-clear { background: #f6fbf8; }.audit-status, .audit-novelty-badge { display: inline-flex; align-items: center; min-height: 24px; border-radius: 99px; padding: 3px 8px; font-size: 10px; font-weight: 900; }.audit-status.alert { color: #9e2424; background: #ffe0e0; }.audit-status.review { color: #7c5a00; background: #fff0b8; }.audit-status.clear { color: #167048; background: #daf3e6; }.audit-novelty-badge { margin: 5px 0 0 5px; color: #167048; background: #daf3e6; }.difference-positive { color: #a32828 !important; font-weight: 900; }.difference-negative { color: #7c5a00 !important; font-weight: 900; }
+
+/* Ajustes visuales puntuales de acciones operativas y comprobantes. */
+.quick-actions button { grid-template-columns: 53px auto; }
+.quick-actions button > .action-ring { width: 50px; height: 50px; font-size: 30px; }
+.quick-actions button > .action-entry { background: var(--yellow); color: var(--navy); }
+.quick-actions button > .action-exit { background: #238a57; color: #ffffff; }
+.quick-actions .secondary-action > .action-cash { background: #ffffff; color: var(--navy); font-size: 28px; font-weight: 900; }
+.payment-actions .text-action, .printable-receipt .text-action, .printable-receipt .primary-module-button { display: inline-flex; align-items: center; justify-content: center; min-height: 43px; margin: 12px 5px 0; border: 1px solid #174d78; border-radius: 8px; padding: 0 16px; color: #ffffff; background: linear-gradient(110deg, var(--navy), #205b8b); font-weight: 900; text-decoration: none; }
+.payment-actions .text-action:hover, .printable-receipt .text-action:hover, .printable-receipt .primary-module-button:hover { filter: brightness(1.08); }
+/* Ajuste visual del panel de autenticación: conserva el logo oficial sin bordes periféricos. */
+.auth-brand-panel::before { opacity: .52; background-image: linear-gradient(115deg, rgba(89, 209, 255, .10) 1px, transparent 1px), linear-gradient(25deg, rgba(89, 209, 255, .08) 1px, transparent 1px), radial-gradient(circle at 18% 76%, transparent 0 68px, rgba(86, 195, 245, .28) 69px 70px, transparent 71px 113px, rgba(86, 195, 245, .14) 114px 115px, transparent 116px); background-size: 34px 34px, 34px 34px, auto; }
+.parking-chavi-logo--panel { width: 120%; max-width: 792px; margin-left: -10%; clip-path: inset(3px); }
+@media (max-width: 760px) { .parking-chavi-logo--panel { width: 112%; margin-left: -6%; } }
+
+/* Identificación visual uniforme del tipo de vehículo. */
+.vehicle-type-indicator { display: inline-flex; align-items: center; gap: 6px; color: var(--navy); font-size: 13px; font-weight: 900; line-height: 1; white-space: nowrap; }
+.vehicle-type-icon { display: inline-grid; width: 24px; height: 24px; place-items: center; border-radius: 6px; background: #eaf2fa; font-size: 16px; line-height: 1; }
+.vehicle-type-indicator--compact { gap: 5px; font-size: 12px; }
+.vehicle-type-indicator--compact .vehicle-type-icon { width: 20px; height: 20px; font-size: 14px; }
+.vehicle-plate-priority { display: flex; align-items: center; gap: 6px; }
+.receipt-vehicle { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* El tipo se muestra separado de la placa para conservar su lectura horizontal. */
+.vehicle-type-icon { width: 36px; height: 36px; font-size: 24px; }
+.vehicle-type-indicator--compact .vehicle-type-icon { width: 30px; height: 30px; font-size: 21px; }
+.vehicle-type-indicator--carro .vehicle-type-icon { background: #dbeeff; box-shadow: inset 0 0 0 1px #8ec5f4; }
+.vehicle-type-indicator--moto .vehicle-type-icon { background: #dff5e8; box-shadow: inset 0 0 0 1px #8bd1a8; }
+.vehicle-type-indicator--bicicleta .vehicle-type-icon { background: #fff3c9; box-shadow: inset 0 0 0 1px #f3cf5c; }
+.vehicle-type-indicator { color: var(--navy); }
+.vehicle-type-icon svg { width: 78%; height: 78%; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3.2; }
+.vehicle-type-indicator--carro .vehicle-type-icon { color: #147ed1; }
+.vehicle-type-indicator--moto .vehicle-type-icon { color: #168b4d; }
+.vehicle-type-indicator--bicicleta .vehicle-type-icon { color: #d7a400; }
+.vehicle-type-icon--carro { color: #147ed1; }
+.vehicle-type-icon--moto { color: #168b4d; }
+.vehicle-type-icon--bicicleta { color: #d7a400; }
+.payment-vehicle-type { margin: -4px 0 10px; }
+.receipt-vehicle-type { display: flex; justify-content: center; margin: 7px 0; }
