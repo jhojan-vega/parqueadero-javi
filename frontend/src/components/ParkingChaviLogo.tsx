@@ -1,4 +1,4 @@
-import parkingChaviLogo from '../assets/parking-chavi-logo.png'
+import parkingChaviLogo from '../assets/parking-chavi-logo-futurista.png'
 
 interface ParkingChaviLogoProps {
   variant?: 'panel' | 'compact'

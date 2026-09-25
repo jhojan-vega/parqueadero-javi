@@ -13,6 +13,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { RecoveryPage } from './pages/RecoveryPage'
 import { ServicesPage } from './pages/ServicesPage'
+import { ReportsPage } from './pages/ReportsPage'
 import './styles/sigp.css'
 
 function AuthenticatedApplication() {
@@ -62,7 +63,9 @@ function AuthenticatedApplication() {
               ? <AuditPage token={session.token} auditorName={session.colaborador.nombre} />
               : visibleSection === 'Tarifas'
                 ? <RatesPage token={session.token} />
-            : <DashboardPage activeSection={visibleSection} role={session.colaborador.rol} onNavigate={navigate} token={session.token} collaboratorId={session.colaborador.id_colaborador} onServiceAction={(action) => { setServiceAction(action); navigate('Servicios') }} />}
+              : visibleSection === 'Informes'
+                ? <ReportsPage token={session.token} />
+                : <DashboardPage activeSection={visibleSection} role={session.colaborador.rol} onNavigate={navigate} token={session.token} collaboratorId={session.colaborador.id_colaborador} onServiceAction={(action) => { setServiceAction(action); navigate('Servicios') }} />}
   </AppLayout>
 }
 

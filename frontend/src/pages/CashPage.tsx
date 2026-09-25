@@ -1,13 +1,42 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { formatTurno } from '../utils/formatTurno'
 import { abrirCaja, cajasAbiertas, cerrarCaja, verificarCaja } from '../api/caja.api'
 import { ApiError } from '../api/http'
 import type { CajaAbiertaDetalle, VerificacionCaja } from '../modules/caja/caja.types'
+import { formatTurno } from '../utils/formatTurno'
+import { printThermalReceipt } from '../utils/thermalPrint'
 
 interface CashPageProps { token: string; operatorName: string; onDataChanged: () => void }
 const money = (value: number): string => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value)
 const date = (value: string): string => new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+const receiptDate = (value: string): string => new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value)).replace(',', '')
 const errorText = (error: unknown): string => error instanceof ApiError ? error.message : 'No fue posible completar la operación.'
+
+function CashCloseReceipt({ cashBox, operatorName }: { cashBox: CajaAbiertaDetalle; operatorName: string }) {
+  const faltante = Number(cashBox.faltante_caja ?? 0)
+  const sobrante = Number(cashBox.sobrante_caja ?? 0)
+  const result = faltante > 0 ? `FALTANTE: ${money(faltante)}` : sobrante > 0 ? `SOBRANTE: ${money(sobrante)}` : 'CUADRE CORRECTO'
+
+  return <article className="printable-receipt cash-close-receipt">
+    <header><strong>PARKING CHAVi</strong><span>Software inteligente a tu servicio</span></header>
+    <h2>Cierre de Caja</h2>
+    <strong className="receipt-code">Caja #{cashBox.id_caja} · {formatTurno(cashBox.turno)}</strong>
+    <div className="cash-close-meta">
+      <span>Operador</span><strong>{operatorName}</strong>
+      <span>Apertura</span><strong>{receiptDate(cashBox.fecha_hora_apertura)}</strong>
+      <span>Cierre</span><strong>{cashBox.fecha_hora_cierre ? receiptDate(cashBox.fecha_hora_cierre) : '—'}</strong>
+    </div>
+    <dl className="cash-close-values">
+      <div><dt>Recaudo total</dt><dd>{money(cashBox.recaudo_total)}</dd></div>
+      <div><dt>Efectivo sistema</dt><dd>{money(cashBox.total_efectivo)}</dd></div>
+      <div><dt>Nequi</dt><dd>{money(cashBox.total_nequi)}</dd></div>
+      <div><dt>Efectivo real</dt><dd>{cashBox.efectivo_real === null ? '—' : money(cashBox.efectivo_real)}</dd></div>
+      <div><dt>Faltante</dt><dd>{money(faltante)}</dd></div>
+      <div><dt>Sobrante</dt><dd>{money(sobrante)}</dd></div>
+    </dl>
+    <p className={`cash-close-result ${faltante > 0 ? 'shortage' : sobrante > 0 ? 'surplus' : 'balanced'}`}>{result}</p>
+    <section className="cash-close-notes"><span>Novedades</span><p>{cashBox.novedades?.trim() || 'Sin novedades'}</p></section>
+  </article>
+}
 
 export function CashPage({ token, operatorName, onDataChanged }: CashPageProps) {
   const [cashBox, setCashBox] = useState<CajaAbiertaDetalle | null>(null)
@@ -39,7 +68,7 @@ export function CashPage({ token, operatorName, onDataChanged }: CashPageProps) 
   }
 
   if (loading) return <section className="cash-page"><p>Cargando Mi Caja…</p></section>
-  if (closedBox) return <section className="cash-page"><article className="cash-card cash-closed"><span className="eyebrow">TURNO CERRADO</span><h2>Caja cerrada correctamente</h2><p>Recaudo total: <strong>{money(closedBox.recaudo_total)}</strong></p><p>Faltante: {money(closedBox.faltante_caja)} · Sobrante: {money(closedBox.sobrante_caja)}</p><button className="primary-module-button" type="button" onClick={() => window.print()}>Imprimir cierre</button><button className="text-action" type="button" onClick={() => setClosedBox(null)}>Cerrar</button></article></section>
+  if (closedBox) return <section className="cash-page"><article className="cash-card cash-closed"><span className="eyebrow">TURNO CERRADO</span><h2>Caja cerrada correctamente</h2><p>Recaudo total: <strong>{money(closedBox.recaudo_total)}</strong></p><p>Faltante: {money(closedBox.faltante_caja)} · Sobrante: {money(closedBox.sobrante_caja)}</p><CashCloseReceipt cashBox={closedBox} operatorName={operatorName} /><button className="primary-module-button" type="button" onClick={printThermalReceipt}>Imprimir cierre</button><button className="text-action" type="button" onClick={() => setClosedBox(null)}>Cerrar</button></article></section>
   if (!cashBox) return <section className="cash-page"><header className="module-page-header"><div><span className="eyebrow">OPERACIÓN</span><h2>Mi Caja</h2><p>Gestione únicamente su turno actual.</p></div></header><article className="cash-card no-cash"><span>$</span><h3>NO TIENE UNA CAJA ABIERTA</h3><p>Abra su Caja para registrar cobros durante el turno.</p>{error && <p className="module-message error">{error}</p>}<button className="primary-module-button" type="button" disabled={saving} onClick={() => void open()}>{saving ? 'Abriendo…' : 'Abrir Caja'}</button></article></section>
 
   return <section className="cash-page"><header className="module-page-header"><div><span className="eyebrow">OPERACIÓN</span><h2>Mi Caja</h2><p>Operador: {operatorName}</p></div><span className="state-pill activo">Abierta</span></header>{error && <p className="module-message error">{error}</p>}<section className="cash-info"><article><span>Turno</span><strong>{formatTurno(cashBox.turno)}</strong></article><article><span>Apertura</span><strong>{date(cashBox.fecha_hora_apertura)}</strong></article><article><span>Operador</span><strong>{operatorName}</strong></article></section><section className="cash-totals"><article className="cash-total-main"><span>RECAUDO TOTAL</span><strong>{money(cashBox.recaudo_total)}</strong></article><article><span>EFECTIVO</span><strong>{money(cashBox.total_efectivo)}</strong></article><article><span>NEQUI</span><strong>{money(cashBox.total_nequi)}</strong></article></section><article className="cash-card movements-unavailable"><h3>Movimientos del turno</h3><p>El Backend actual no expone el detalle de pagos por Caja.</p></article><article className="cash-card close-cash"><span className="eyebrow">CIERRE DE CAJA</span><h3>Verificar efectivo real</h3><p>Efectivo esperado: <strong>{money(cashBox.total_efectivo)}</strong></p><form onSubmit={verify}><label>Efectivo real contado<input inputMode="numeric" value={realCash} onChange={(event) => { setRealCash(event.target.value.replace(/\D/g, '')); setVerification(null); setConfirmClose(false) }} /></label><button className="primary-module-button" type="submit" disabled={saving}>{saving ? 'Verificando…' : 'Verificar'}</button></form>{verification && <div className="verification-result"><strong>{verification.faltante_caja > 0 ? 'FALTANTE' : verification.sobrante_caja > 0 ? 'SOBRANTE' : 'CUADRE CORRECTO'}</strong><p>Faltante: {money(verification.faltante_caja)}</p><p>Sobrante: {money(verification.sobrante_caja)}</p>{!confirmClose ? <button className="secondary-confirm" type="button" onClick={() => setConfirmClose(true)}>Cerrar Caja</button> : <div className="close-confirmation"><p>¿Confirma el cierre definitivo de la Caja?</p><button className="primary-module-button" type="button" disabled={saving} onClick={() => void close()}>Confirmar cierre</button><button className="text-action" type="button" onClick={() => setConfirmClose(false)}>Cancelar</button></div>}</div>}</article></section>

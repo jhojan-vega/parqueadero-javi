@@ -5,6 +5,7 @@ import { rutasCaja } from '../modules/caja/caja.routes';
 import { rutasColaborador } from '../modules/colaborador/colaborador.routes';
 import { rutasServicio } from '../modules/servicio/servicio.routes';
 import { rutasTarifa } from '../modules/tarifa/tarifa.routes';
+import { rutasInformes } from '../modules/informes/informes.routes';
 
 export const registrarRutas = async (
   app: FastifyInstance,
@@ -15,4 +16,5 @@ export const registrarRutas = async (
   await app.register(rutasColaborador);
   await app.register(rutasTarifa);
   await app.register(rutasServicio);
+  await app.register(rutasInformes);
 };
